@@ -540,7 +540,7 @@ function chart1(){
   const top = RANK.slice(0,12);
   const R = rp();
   mkChart('c1').setOption({
-    grid:{left:R.catLeft,right:R.catRight,top:8,bottom:34},
+    grid:{left:R.catLeft,right:R.catRight,top:8,bottom:48},
     tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
       formatter:p=>{const r=top[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>综合评分 ${r.score}</b>`;}},
     xAxis:{max:100,name:'综合评分',nameLocation:'middle',nameGap:26,axisLine:{show:false},splitLine:{lineStyle:{color:'#eee'}}},
@@ -602,7 +602,7 @@ function chart3(){
     const R = rp();
     dom.style.height = (R.narrow ? 620 : 760) + 'px';
     mkChart('c3').setOption({
-      grid:{left:R.catLeft,right:R.narrow?18:60,top:34,bottom:40},
+      grid:{left:R.catLeft,right:R.narrow?18:60,top:34,bottom:50},
       legend:{top:2, data:avail.map(([,t])=>t)},
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
         formatter:p=>{const r=top[p[0].dataIndex];
@@ -622,7 +622,7 @@ function chart3(){
     const R = rp();
     dom.style.height = '600px';
     mkChart('c3').setOption({
-      grid:{left:R.catLeft,right:R.narrow?40:70,top:8,bottom:34},
+      grid:{left:R.catLeft,right:R.narrow?40:70,top:8,bottom:48},
       legend:{show:false},
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
         formatter:p=>{const r=byRet[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>${label} ${r[retPeriod]}%</b>`;}},
