@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>场外基金 · 限购看板</title>
+<script src="echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1a1d24; --sub:#6b7280; --line:#e7e9ee;
+    --accent:#2563eb; --A:#c0392b; --C:#2471c4; --E:#e08e0b; --I:#1f9e6f; --D:#7d5ba6;
+    --up:#159a5b; --down:#d14343;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Microsoft YaHei","微软雅黑",-apple-system,system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;}
+  .wrap{max-width:1160px;margin:0 auto;padding:22px 18px 60px;}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 16px;margin-bottom:6px;}
+  h1{font-size:24px;margin:0;}
+  .meta{color:var(--sub);font-size:13px;}
+  .controls{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  select{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);}
+  /* 吸顶容器：指数切换 + 目录一起常驻顶部 */
+  .stickytop{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);}
+  /* 指数切换 */
+  .indexbar{display:flex;align-items:center;gap:10px;padding:10px 0 6px;}
+  .iseg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .iseg button{padding:8px 18px;border:0;background:#fff;cursor:pointer;font-size:15px;font-weight:600;color:var(--sub);
+    border-right:1px solid var(--line);transition:.15s;}
+  .iseg button:last-child{border-right:0;}
+  .iseg button:hover{background:#f4f7ff;color:var(--ink);}
+  .iseg button.on{background:var(--accent);color:#fff;}
+  /* toc 目录 */
+  .toc{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;border-top:1px solid var(--line);}
+  .toc a{font-size:13px;color:var(--sub);text-decoration:none;padding:5px 11px;border-radius:20px;
+    border:1px solid transparent;transition:.15s;white-space:nowrap;}
+  .toc a:hover{color:var(--ink);background:#fff;border-color:var(--line);}
+  .toc a.active{color:var(--accent);background:#eef4ff;border-color:#cfe0ff;font-weight:600;}
+  .card{scroll-margin-top:var(--stick,110px);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .card h2{font-size:17px;margin:0 0 4px;}
+  .card .hint{color:var(--sub);font-size:12.5px;margin:0 0 14px;}
+  /* diff */
+  .diff h1{display:none;}
+  .diff h2{font-size:15px;margin:14px 0 8px;color:#374151;}
+  .diff ul{margin:0;padding-left:20px;}
+  .diff li{margin:5px 0;font-size:14px;}
+  .diff blockquote{margin:0 0 10px;padding:8px 12px;background:#f0f4ff;border-left:3px solid var(--accent);
+    border-radius:6px;color:#374151;font-size:13.5px;}
+  .diff .empty{color:var(--sub);font-size:14px;}
+  .diff code{background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:13px;}
+  .diff .arrow{color:var(--accent);font-weight:700;margin:0 4px;}
+  .diff .chg{font-weight:700;padding:0 3px;border-radius:4px;}
+  .diff .chg.down{color:var(--down);background:#fdecec;}   /* 限额收紧/暂停 */
+  .diff .chg.up{color:var(--up);background:#e9f7ef;}       /* 限额放宽 */
+  .diff a.goto{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);cursor:pointer;}
+  .diff a.goto:hover{background:#eef4ff;}
+  .diff li.change{padding:6px 10px;background:#fafbfd;border:1px solid var(--line);border-radius:8px;
+    margin:6px 0;list-style:none;}
+  .diff li.change .who{font-weight:700;}
+  /* table */
+  .tbl-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;font-size:13px;}
+  .tbl-tools input{padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;min-width:200px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:12px;
+    border:1px solid var(--line);cursor:pointer;user-select:none;background:#fff;}
+  .chip.off{opacity:.35;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .scroll{overflow-x:auto;overflow-y:visible;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);}
+  th{background:#fbfcfe;cursor:pointer;user-select:none;color:#475569;font-weight:600;}
+  th.sorted::after{content:" ▾";color:var(--accent);}
+  th.asc.sorted::after{content:" ▴";}
+  td.name,th.name{text-align:left;white-space:normal;min-width:220px;}
+  td.name a{color:var(--ink);text-decoration:none;font-weight:600;border-bottom:1px solid transparent;}
+  td.name a:hover{color:var(--accent);border-bottom-color:var(--accent);}
+  td.name a::after{content:"↗";font-size:10px;color:var(--sub);margin-left:3px;vertical-align:top;}
+  .badge{display:inline-block;min-width:20px;text-align:center;color:#fff;border-radius:5px;padding:1px 6px;font-size:12px;font-weight:700;}
+  .st{display:inline-block;padding:1px 8px;border-radius:20px;font-size:12px;font-weight:600;}
+  .st.open{color:var(--up);background:#e9f7ef;}
+  .st.limit{color:var(--E);background:#fdf3e3;}
+  .st.stop{color:var(--down);background:#fdecec;}
+  td.limn{font-variant-numeric:tabular-nums;font-weight:600;color:var(--E);}
+  td.limn.none{color:var(--sub);font-weight:400;}
+  tr.stopped td{background:#fdfafa;}
+  tr.stopped td.name a{color:#9aa0aa;}
+  tr:hover td{background:#f8fafc;}
+  .rank{color:var(--sub);}
+  td.idxcol,th.idxcol{text-align:left;}
+  .idxtag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:12px;background:#eef1f6;color:#475569;white-space:nowrap;}
+  .idxtag.eq{background:#fdf3e3;color:#b8791b;font-weight:600;}   /* 等权重=非标准，醒目区分 */
+  #idxNote{margin:-6px 0 12px;color:#b8791b;}
+  /* 分页 */
+  .pager{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;flex-wrap:wrap;}
+  .pager button{padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;color:var(--ink);}
+  .pager button:disabled{opacity:.4;cursor:default;}
+  .pager .pinfo{color:var(--sub);}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .seg button{padding:5px 12px;border:0;background:#fff;cursor:pointer;font-size:13px;color:var(--sub);border-right:1px solid var(--line);}
+  .seg button:last-child{border-right:0;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  /* charts */
+  .chart{width:100%;height:480px;}
+  #c2{height:560px;} #c3{height:600px;}
+  .legend{font-size:12.5px;color:var(--sub);margin-top:6px;}
+  .legend b{color:var(--ink);}
+  footer{color:var(--sub);font-size:12px;margin-top:26px;text-align:center;}
+  @media(max-width:640px){ .chart{height:420px;} h1{font-size:20px;} .iseg button{padding:7px 14px;font-size:14px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span id="ixName">场外基金</span> · 限购看板</h1>
+    <span class="meta" id="meta">加载中…</span>
+    <div class="controls">
+      <label class="meta">快照日期</label>
+      <select id="dateSel"></select>
+    </div>
+  </header>
+
+  <div class="stickytop" id="stickytop">
+  <div class="indexbar">
+    <span class="meta">指数</span>
+    <span class="iseg" id="indexSel"></span>
+  </div>
+
+  <nav class="toc" id="toc">
+    <a href="#sec-diff">📋 本期变化</a>
+    <a href="#sec-table">🚦 限购信息</a>
+    <a href="#sec-c1">① 评分榜</a>
+    <a href="#sec-c2">② 效率地图</a>
+    <a href="#sec-c3">③ 收益排行</a>
+  </nav>
+  </div>
+
+  <section class="card" id="sec-diff">
+    <h2>📋 本期变化</h2>
+    <p class="hint">对比上一期的申购状态 / 限额 / 费率变化、新增或消失的品种。点上期日期可跳转查看。</p>
+    <div class="diff" id="diff"></div>
+  </section>
+
+  <section class="card" id="sec-table">
+    <h2>🚦 最新限购信息</h2>
+    <p class="hint">人民币份额的申购状态与单日限额。点基金名跳转天天基金，点表头排序，输入框按名称/代码筛选。红=A类(长期) 蓝=C类(短期) 橙=E 绿=I 紫=D。</p>
+    <p class="hint" id="idxNote"></p>
+    <div class="tbl-tools">
+      <span class="seg" id="stFilter">
+        <button data-s="all" class="on">全部</button>
+        <button data-s="buyable">可买</button>
+        <button data-s="stop">已限购(暂停)</button>
+      </span>
+      <input id="q" placeholder="筛选：基金名称 / 代码">
+      <span id="chips"></span>
+      <span class="meta" id="tblCount"></span>
+    </div>
+    <div class="scroll"><table id="tbl"></table></div>
+    <div class="pager" id="pager"></div>
+  </section>
+
+  <section class="card" id="sec-c1">
+    <h2>① 综合评分榜 Top12</h2>
+    <p class="hint">权重：运作费率40% + 规模25% + 近1年收益15% + 年化跟踪误差10% + 申购便利度10%。</p>
+    <div class="chart" id="c1"></div>
+  </section>
+
+  <section class="card" id="sec-c2">
+    <h2>② 「费率 — 跟踪误差」效率地图</h2>
+    <p class="hint">横轴=运作费率(越左越便宜)，纵轴=年化跟踪误差(越下跟得越准)，气泡大小=规模。<b>越靠左下角越好。</b></p>
+    <div class="chart" id="c2"></div>
+  </section>
+
+  <section class="card" id="sec-c3">
+    <h2>③ 收益率排行 Top15</h2>
+    <p class="hint">同一指数，收益差异主要来自跟踪误差与现金拖累。切换下方周期查看不同区间排名。</p>
+    <div class="tbl-tools">
+      <span class="meta">收益周期</span>
+      <span class="seg" id="periodSel"></span>
+    </div>
+    <div class="chart" id="c3"></div>
+  </section>
+
+  <footer>数据仅供整理参考，不构成投资建议 · 由 run_weekly.sh 每期自动更新</footer>
+</div>
+
+<script>
+const CLS_COLOR = {A:'#c0392b',C:'#2471c4',E:'#e08e0b',I:'#1f9e6f',D:'#7d5ba6'};
+const clsColor = c => CLS_COLOR[c] || '#888';
+const short = n => n
+  .replace('纳斯达克100','纳').replace('纳指','纳')
+  .replace('标普500等权重','标普等权').replace('标普500','标普').replace('等权重','等权')
+  .replace('ETF发起式联接','联接').replace('ETF联接','联接')
+  .replace('指数发起式','指数').replace('指数发起','指数').replace('发起式','发起')
+  .replace(/\(QDII[^)]*\)/,'').replace(/人民币/,'');
+
+let CUR = null;                                   // 当前指数 key
+let MANIFEST = {dates:[]}, RANK = [], TABLE = [], charts = {};
+let activeCls = new Set(['A','C','E','I','D']);
+let statusFilter = 'all', sortKey = 'score', sortAsc = false;
+let page = 1; const PAGE_SIZE = 20;
+let retPeriod = 'r1y';
+
+/* 解析 results.json 里的字符串字段（非可买品种没有 rank 数据，需自己算） */
+const num = s => { const m=(s||'').match(/-?[\d.]+/); return m?parseFloat(m[0]):null; };
+const scaleY = s => { if(!s) return null; let m=s.match(/([\d.]+)亿/); if(m) return +m[1]; m=s.match(/([\d.]+)万/); if(m) return +m[1]/10000; return null; };
+const limNum = s => { if(!s||!/元/.test(s)) return null; return num(s); };
+const clsOf = n => /[CＣ]$|联接[CＣ]|\)C|指数.?C|100.?C|发起.?C|联接.?C|人民币C|E$|D$|联接E|指数.?D/.test(n)
+  ? (/E$|联接E/.test(n)?'E':/D$/.test(n)?'D':'C') : (/I$|联接I/.test(n)?'I':'A');
+// 从基金名推断“跟踪哪个指数”——等权重与标准（市值加权）是不同指数，不宜直接比较。
+// FOF / ETF联接 只是投资形式，跟踪的仍是同一标准指数，归入标准。
+const indexOf_ = n =>
+  /等权/.test(n)                ? '标普500等权' :
+  /标普\s*500/.test(n)          ? '标普500' :
+  /纳斯达克\s*100|纳指/.test(n) ? '纳斯达克100' : '—';
+
+async function boot(){
+  const idx = await fetch('data/index.json').then(r=>r.json());
+  const seg = document.getElementById('indexSel');
+  seg.innerHTML = idx.indices.map(x=>`<button data-k="${x.key}">${x.name}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b=> b.onclick = () => selectIndex(b.dataset.k));
+
+  // 一次性绑定表格交互（切指数不重绑）
+  document.getElementById('dateSel').onchange = e => load(e.target.value);
+  document.querySelectorAll('#stFilter button').forEach(b=>{
+    b.onclick = () => {
+      statusFilter = b.dataset.s; page = 1;
+      document.querySelectorAll('#stFilter button').forEach(x=>x.classList.toggle('on', x===b));
+      renderTable();
+    };
+  });
+  document.getElementById('q').oninput = () => { page=1; renderTable(); };
+  wireToc();
+  window.addEventListener('resize', () => Object.values(charts).forEach(c=>c && c.resize()));
+
+  await selectIndex(idx.default || idx.indices[0].key);
+}
+
+/* 切换指数：换 manifest、标题、日期下拉，重置筛选，载入最新期 */
+async function selectIndex(key){
+  CUR = key;
+  document.querySelectorAll('#indexSel button').forEach(b=>b.classList.toggle('on', b.dataset.k===key));
+  MANIFEST = await fetch(`data/${key}/manifest.json`).then(r=>r.json());
+  const nm = MANIFEST.name || key;
+  document.getElementById('ixName').textContent = nm + ' 场外基金';
+  document.title = nm + ' 场外基金 · 限购看板';
+  const sel = document.getElementById('dateSel');
+  sel.innerHTML = MANIFEST.dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  sel.value = MANIFEST.latest;
+  // 重置筛选状态
+  page = 1; activeCls = new Set(['A','C','E','I','D']); statusFilter = 'all';
+  sortKey = 'score'; sortAsc = false; retPeriod = 'r1y';
+  document.querySelectorAll('#stFilter button').forEach(x=>x.classList.toggle('on', x.dataset.s==='all'));
+  document.getElementById('q').value = '';
+  await load(MANIFEST.latest);
+}
+
+async function load(date){
+  document.getElementById('dateSel').value = date;
+  document.getElementById('meta').textContent = '快照 ' + date + ' · 加载中…';
+  const base = `data/${CUR}/${date}`;
+  const [rank, results, diffMd] = await Promise.all([
+    fetch(`${base}/rank.json`).then(r=>r.json()),
+    fetch(`${base}/results.json`).then(r=>r.json()),
+    fetch(`${base}/changes.md`).then(r=>r.text()),
+  ]);
+  // 从 results.json 取多周期收益（rank.json 只有近1年）
+  const retMap = new Map(results.map(r=>[r.code, {r3m:num(r.r3m), r6m:num(r.r6m), r1y:num(r.r1y), r3y:num(r.r3y)}]));
+  RANK = rank.map(r=>{ const ret=retMap.get(r.code)||{}; return {...r, sname:short(r.name), r3m:ret.r3m, r6m:ret.r6m, r3y:ret.r3y}; });
+  // 全部人民币份额（含暂停申购），合并 rank 里的评分
+  const rankMap = new Map(rank.map(r=>[r.code, r]));
+  TABLE = results.filter(r=>!/美元|美汇/.test(r.name)).map(r=>{
+    const rk = rankMap.get(r.code);
+    const stopped = r.buyable === false || /暂停|封闭|停/.test(r.buy_status||'');
+    return {
+      code:r.code, name:r.name, sname:short(r.name),
+      idx: indexOf_(r.name),
+      cls: rk ? rk.cls : clsOf(r.name),
+      status: stopped ? 'stop' : (/限/.test(r.buy_status||'') ? 'limit' : 'open'),
+      statusTxt: stopped ? '暂停申购' : (r.buy_status || '开放申购'),
+      limN: stopped ? null : limNum(r.daily_limit),
+      score: rk ? rk.score : null,
+      oper: rk ? rk.oper : num(r.oper),
+      err:  rk ? rk.err  : num(r.track_err),
+      scale:rk ? rk.scale: scaleY(r.scale),
+      r1y:  rk ? rk.r1y  : num(r.r1y),
+    };
+  });
+  const nBuy = TABLE.filter(r=>r.status!=='stop').length, nStop = TABLE.length-nBuy;
+  document.getElementById('meta').textContent = `快照 ${date} · 可买 ${nBuy} 只 · 暂停 ${nStop} 只`;
+  page = 1;
+  renderDiff(diffMd, date);
+  renderTable();
+  renderCharts();
+}
+
+/* ---------- 本期变化：轻量 markdown + 变化高亮 + 上期跳转 ---------- */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function inlineMd(s){
+  return esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+}
+const amtOf = s => { const m=(s||'').match(/([\d.]+)\s*元/); return m?parseFloat(m[1]):null; };
+function changeSide(a,b){
+  const va=amtOf(a), vb=amtOf(b);
+  let bh;
+  if(va!=null && vb!=null && va!==vb){
+    const cls = vb<va ? 'down' : 'up';   // 限额降低=收紧(红)；提高=放宽(绿)
+    bh = esc(b).replace(/([\d.]+\s*元)/, `<span class="chg ${cls}">$1</span>`);
+  } else {
+    const stop = /(暂停|停|封闭)/.test(b);
+    bh = `<span class="chg ${stop?'down':'up'}">${esc(b)}</span>`;
+  }
+  return `${esc(a)}<span class="arrow">→</span>${bh}`;
+}
+function fmtChangeLi(text){
+  let who='', rest=text;
+  const m = text.match(/^\*\*([^*]+)\*\*\s*[:：]?\s*([\s\S]*)$/);
+  if(m){ who=m[1]; rest=m[2]; }
+  const parts = rest.split(/\s*(?:→|->)\s*/);
+  const body = parts.length===2 ? changeSide(parts[0], parts[1]) : inlineMd(rest);
+  return `<li class="change">${who?`<span class="who">${esc(who)}</span>：`:''}${body}</li>`;
+}
+function renderDiff(md, curDate){
+  const lines = md.split(/\r?\n/);
+  let html='', inList=false, bodyLines=0;
+  const closeList = () => { if(inList){ html+='</ul>'; inList=false; } };
+  for(const raw of lines){
+    const line = raw.trimEnd();
+    if(!line){ closeList(); continue; }
+    if(/^#\s/.test(line)) continue;
+    if(/^##\s/.test(line)){ closeList(); html+=`<h2>${inlineMd(line.replace(/^##\s/,''))}</h2>`; bodyLines++; continue; }
+    if(/^>\s?/.test(line)){
+      closeList();
+      let h = inlineMd(line.replace(/^>\s?/,''));
+      // 上期/本期日期都做成可跳转链接（只要该日期存在于快照列表）
+      h = h.replace(/(\d{4}-\d{2}-\d{2})/g, d =>
+        MANIFEST.dates.includes(d) ? `<a class="goto" data-goto="${d}">${d}</a>` : d);
+      html += `<blockquote>${h}</blockquote>`; bodyLines++; continue;
+    }
+    if(/^[-*]\s/.test(line)){
+      if(!inList){ html+='<ul>'; inList=true; }
+      const t = line.replace(/^[-*]\s/,'');
+      html += /→|->/.test(t) ? fmtChangeLi(t) : `<li>${inlineMd(t)}</li>`;
+      bodyLines++; continue;
+    }
+    closeList(); html+=`<p>${inlineMd(line)}</p>`; bodyLines++;
+  }
+  closeList();
+  if(!bodyLines) html = '<p class="empty">本期与上一期相比无变化 🎉</p>';
+  const el = document.getElementById('diff');
+  el.innerHTML = html;
+  el.querySelectorAll('a.goto').forEach(a=> a.onclick = () => load(a.dataset.goto));
+}
+
+/* ---------- 限购表 ---------- */
+const fmtPct = v => v==null ? '-' : v.toFixed(2)+'%';
+function statusCell(r){ return `<span class="st ${r.status}">${r.statusTxt}</span>`; }
+function limCell(r){
+  if(r.limN==null) return '<span style="color:var(--sub)">—</span>';
+  return `${r.limN.toLocaleString('en-US')} <span style="color:var(--sub);font-weight:400">元</span>`;
+}
+const COLS = [
+  {k:'_rank', t:'#',      fmt:(r,i,off)=>`<span class="rank">${off+i+1}</span>`, cls:'rank', sortable:false},
+  {k:'name',  t:'基金名称', fmt:r=>`<a href="https://fund.eastmoney.com/${r.code}.html" target="_blank" rel="noopener">${esc(r.name)}</a>`, cls:'name'},
+  {k:'idx',   t:'跟踪指数', fmt:r=>`<span class="idxtag${/等权/.test(r.idx)?' eq':''}">${r.idx}</span>`, cls:'idxcol'},
+  {k:'code',  t:'代码',    fmt:r=>r.code, cls:'code'},
+  {k:'cls',   t:'份额',    fmt:r=>`<span class="badge" style="background:${clsColor(r.cls)}">${r.cls}</span>`},
+  {k:'status',t:'申购状态', fmt:r=>statusCell(r), sortval:r=>({open:0,limit:1,stop:2}[r.status])},
+  {k:'limN',  t:'单日限额', fmt:r=>limCell(r), cls:'limn', sortval:r=>r.limN},
+  {k:'score', t:'评分',    fmt:r=>r.score==null?'<span class="rank">—</span>':`<b>${r.score}</b>`},
+  {k:'oper',  t:'运作费率', fmt:r=>fmtPct(r.oper)},
+  {k:'err',   t:'跟踪误差', fmt:r=>fmtPct(r.err)},
+  {k:'scale', t:'规模(亿)', fmt:r=>r.scale!=null?r.scale.toFixed(1):'-'},
+  {k:'r1y',   t:'近1年',   fmt:r=>fmtPct(r.r1y)},
+];
+function filteredRows(){
+  const q = (document.getElementById('q').value||'').trim().toLowerCase();
+  let rows = TABLE.filter(r=>activeCls.has(r.cls));
+  if(statusFilter==='buyable') rows = rows.filter(r=>r.status!=='stop');
+  else if(statusFilter==='stop') rows = rows.filter(r=>r.status==='stop');
+  if(q) rows = rows.filter(r=> r.name.toLowerCase().includes(q) || r.code.includes(q));
+  const col = COLS.find(c=>c.k===sortKey);
+  if(col && col.sortable!==false){
+    const val = col.sortval || (r=>r[sortKey]);
+    rows.sort((a,b)=>{
+      let x=val(a), y=val(b);
+      if(typeof x==='string') return sortAsc? x.localeCompare(y): y.localeCompare(x);
+      x=x==null?-Infinity:x; y=y==null?-Infinity:y;
+      return sortAsc? x-y : y-x;
+    });
+  }
+  return rows;
+}
+// 当期出现≥2种指数（如标普500 + 标普500等权）才显示「跟踪指数」列
+function visibleCols(){
+  const kinds = new Set(TABLE.map(r=>r.idx).filter(v=>v && v!=='—'));
+  const showIdx = kinds.size > 1;
+  const note = document.getElementById('idxNote');
+  if(note) note.textContent = showIdx
+    ? '⚠ 本页含不同指数（如标普500 与 标普500等权重）——它们是不同指数，评分/收益不宜直接横向比较。'
+    : '';
+  return COLS.filter(c=> c.k!=='idx' || showIdx);
+}
+function renderTable(){
+  const rows = filteredRows();
+  const cols = visibleCols();
+  const pages = Math.max(1, Math.ceil(rows.length/PAGE_SIZE));
+  if(page>pages) page = pages;
+  const off = (page-1)*PAGE_SIZE;
+  const pageRows = rows.slice(off, off+PAGE_SIZE);
+  const thead = '<thead><tr>' + cols.map(c=>{
+    const sortedCls = c.k===sortKey ? 'sorted '+(sortAsc?'asc':'') : '';
+    return `<th class="${c.cls||''} ${sortedCls}" data-k="${c.k}">${c.t}</th>`;
+  }).join('') + '</tr></thead>';
+  const tbody = '<tbody>' + pageRows.map((r,i)=>
+    `<tr class="${r.status==='stop'?'stopped':''}">`+cols.map(c=>
+      `<td class="${c.cls||''}">${c.fmt(r,i,off)}</td>`).join('')+'</tr>').join('') + '</tbody>';
+  const tbl = document.getElementById('tbl');
+  tbl.innerHTML = thead + tbody;
+  tbl.querySelectorAll('th').forEach(th=>{
+    const c = COLS.find(x=>x.k===th.dataset.k);
+    if(c && c.sortable===false) return;
+    th.onclick = () => {
+      if(sortKey===th.dataset.k) sortAsc=!sortAsc;
+      else { sortKey=th.dataset.k; sortAsc = (th.dataset.k==='name'||th.dataset.k==='code'); }
+      page = 1; renderTable();
+    };
+  });
+  document.getElementById('tblCount').textContent = `共 ${rows.length} 只`;
+  renderPager(rows.length, pages);
+  renderChips();
+}
+function renderPager(total, pages){
+  const el = document.getElementById('pager');
+  if(total<=PAGE_SIZE){ el.innerHTML=''; return; }
+  const off=(page-1)*PAGE_SIZE;
+  el.innerHTML =
+    `<button id="pp" ${page<=1?'disabled':''}>‹ 上一页</button>`+
+    `<span class="pinfo">第 ${page} / ${pages} 页 · 第 ${off+1}-${Math.min(off+PAGE_SIZE,total)} 只，共 ${total} 只</span>`+
+    `<button id="pn" ${page>=pages?'disabled':''}>下一页 ›</button>`;
+  const pp=document.getElementById('pp'), pn=document.getElementById('pn');
+  if(pp) pp.onclick=()=>{ page--; renderTable(); document.getElementById('sec-table').scrollIntoView(); };
+  if(pn) pn.onclick=()=>{ page++; renderTable(); document.getElementById('sec-table').scrollIntoView(); };
+}
+function renderChips(){
+  const el = document.getElementById('chips');
+  const order = ['A','C','E','I','D'];
+  const label = {A:'A类',C:'C类',E:'E类',I:'I类',D:'D类'};
+  el.innerHTML = order.filter(c=>TABLE.some(r=>r.cls===c)).map(c=>
+    `<span class="chip ${activeCls.has(c)?'':'off'}" data-c="${c}">
+       <span class="dot" style="background:${clsColor(c)}"></span>${label[c]}</span>`).join('');
+  el.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick = () => {
+      const c = ch.dataset.c;
+      activeCls.has(c) ? activeCls.delete(c) : activeCls.add(c);
+      if(activeCls.size===0) order.forEach(x=>activeCls.add(x));
+      page = 1; renderTable();
+    };
+  });
+}
+
+/* ---------- 目录高亮（scrollspy） ---------- */
+function wireToc(){
+  const links = [...document.querySelectorAll('#toc a')];
+  const secs = links.map(a=>document.querySelector(a.getAttribute('href')));
+  const stickEl = document.getElementById('stickytop');
+  // 吸顶容器高度动态写进 --stick，供锚点定位(scroll-margin-top)与高亮判定共用
+  const syncStick = () => {
+    const h = stickEl.offsetHeight;
+    document.documentElement.style.setProperty('--stick', (h + 14) + 'px');
+    return h;
+  };
+  const onScroll = () => {
+    const h = syncStick();
+    // 到达页面底部时强制高亮最后一项（末节太短滚不到顶的经典问题）
+    if(window.innerHeight + window.scrollY >= document.body.scrollHeight - 2){
+      links.forEach((a,i)=>a.classList.toggle('active', i===links.length-1));
+      return;
+    }
+    const y = window.scrollY + h + 16;
+    let idx = 0;
+    secs.forEach((s,i)=>{ if(s && s.offsetTop<=y) idx=i; });
+    links.forEach((a,i)=>a.classList.toggle('active', i===idx));
+  };
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll, {passive:true});
+  syncStick();
+  onScroll();
+}
+
+/* ---------- 三张 ECharts（复刻 make_charts.js 口径） ---------- */
+function mkChart(id){
+  const dom = document.getElementById(id);
+  if(!charts[id]) charts[id] = echarts.init(dom);
+  return charts[id];
+}
+function renderCharts(){ chart1(); chart2(); renderPeriodSel(); chart3(); }
+
+function chart1(){
+  const top = RANK.slice(0,12);
+  mkChart('c1').setOption({
+    grid:{left:230,right:64,top:8,bottom:34},
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+      formatter:p=>{const r=top[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>综合评分 ${r.score}</b>`;}},
+    xAxis:{max:100,name:'综合评分',nameLocation:'middle',nameGap:26,axisLine:{show:false},splitLine:{lineStyle:{color:'#eee'}}},
+    yAxis:{type:'category',inverse:true,data:top.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:13}},
+    series:[{type:'bar',barWidth:20,
+      data:top.map(r=>({value:r.score,itemStyle:{color:clsColor(r.cls),borderRadius:[0,5,5,0]}})),
+      label:{show:true,position:'right',fontWeight:'bold',fontSize:13,formatter:'{c}'}}]
+  }, true);
+}
+function chart2(){
+  const pts = RANK.filter(r=>r.oper!=null&&r.err!=null);
+  // 坐标轴范围按当前指数数据自适应（不同指数费率/误差量级不同）
+  const ox = pts.map(r=>r.oper), ey = pts.map(r=>r.err);
+  const xmin = Math.max(0, Math.floor((Math.min(...ox)-0.05)*20)/20);
+  const xmax = Math.ceil((Math.max(...ox)+0.05)*20)/20;
+  const ymin = Math.max(0, Math.floor((Math.min(...ey)-0.1)*10)/10);
+  const ymax = Math.ceil((Math.max(...ey)+0.1)*10)/10;
+  const zx = xmin + (xmax-xmin)*0.35, zy = ymin + (ymax-ymin)*0.45;   // 甜区：左下角
+  mkChart('c2').setOption({
+    grid:{left:70,right:40,top:24,bottom:60},
+    tooltip:{trigger:'item',formatter:p=>{const r=p.data.r;
+      return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>运作费率 ${r.oper}% · 跟踪误差 ${r.err}%<br/>规模 ${r.scale}亿`;}},
+    xAxis:{name:'运作费率 %（越低越省）',min:xmin,max:xmax,nameLocation:'middle',nameGap:30,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
+    yAxis:{name:'年化跟踪误差 %（越低跟得越准）',min:ymin,max:ymax,nameLocation:'middle',nameGap:44,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
+    series:[{type:'scatter',
+      markArea:{silent:true,itemStyle:{color:'rgba(46,184,114,0.13)'},
+        label:{show:true,position:['6%','90%'],formatter:'甜区：又便宜又跟得准',color:'#27ae60',fontSize:12,fontWeight:'bold'},
+        data:[[{xAxis:xmin,yAxis:ymin},{xAxis:zx,yAxis:zy}]]},
+      data:pts.map(r=>({value:[r.oper,r.err],r,
+        symbolSize:Math.max(14,Math.min(58,Math.sqrt(r.scale||1)*7)),
+        itemStyle:{color:clsColor(r.cls),opacity:.8,borderColor:'#fff',borderWidth:1.5}})),
+      label:{show:true,formatter:p=>p.data.r.sname+p.data.r.cls,position:'top',fontSize:11,color:'#333'}}]
+  }, true);
+}
+const PERIODS = [['r3m','近3月'],['r6m','近6月'],['r1y','近1年'],['r3y','近3年']];
+const PCOLOR = {r3m:'#5aa9e6', r6m:'#1f9e6f', r1y:'#e08e0b', r3y:'#c0392b'};
+function renderPeriodSel(){
+  const el = document.getElementById('periodSel');
+  const avail = PERIODS.filter(([k])=>RANK.some(r=>r[k]!=null));
+  const opts = [...avail]; if(avail.length) opts.push(['all','所有']);
+  if(!opts.some(([k])=>k===retPeriod)) retPeriod = (avail.find(([k])=>k==='r1y')||avail[0]||['r1y'])[0];
+  el.innerHTML = opts.map(([k,t])=>`<button data-p="${k}" class="${k===retPeriod?'on':''}">${t}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    retPeriod=b.dataset.p;
+    el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+    chart3();
+  });
+}
+function chart3(){
+  const avail = PERIODS.filter(([k])=>RANK.some(r=>r[k]!=null));
+  const dom = document.getElementById('c3');
+  if(retPeriod==='all'){
+    // 按近1年（无则第一个可用周期）排 Top15，并列展示所有周期
+    const anchor = (avail.find(([k])=>k==='r1y')||avail[0])[0];
+    const top = RANK.filter(r=>r[anchor]!=null).sort((a,b)=>b[anchor]-a[anchor]).slice(0,15);
+    const allVals = top.flatMap(r=>avail.map(([k])=>r[k]).filter(v=>v!=null));
+    const mn = Math.floor((Math.min(...allVals)-1)/5)*5, mx = Math.ceil((Math.max(...allVals)+1)/5)*5;
+    dom.style.height = '760px';
+    mkChart('c3').setOption({
+      grid:{left:230,right:60,top:34,bottom:40},
+      legend:{top:2, data:avail.map(([,t])=>t)},
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+        formatter:p=>{const r=top[p[0].dataIndex];
+          return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>`+
+            avail.map(([k,t])=>`${t}：<b>${r[k]!=null?r[k]+'%':'—'}</b>`).join('<br/>');}},
+      xAxis:{min:mn,max:mx,name:'收益率 %',nameLocation:'middle',nameGap:26,axisLabel:{formatter:'{value}%'},splitLine:{lineStyle:{color:'#eee'}}},
+      yAxis:{type:'category',inverse:true,data:top.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:12}},
+      series:avail.map(([k,t])=>({name:t,type:'bar',barGap:'10%',barCategoryGap:'32%',
+        itemStyle:{color:PCOLOR[k],borderRadius:[0,3,3,0]},
+        data:top.map(r=>r[k])}))
+    }, true);
+  } else {
+    const label = (PERIODS.find(([k])=>k===retPeriod)||[,'收益率'])[1];
+    const byRet = RANK.filter(r=>r[retPeriod]!=null).sort((a,b)=>b[retPeriod]-a[retPeriod]).slice(0,15);
+    const rv = byRet.map(r=>r[retPeriod]);
+    const mn = Math.floor((Math.min(...rv)-0.3)*2)/2, mx = Math.ceil((Math.max(...rv)+0.3)*2)/2;
+    dom.style.height = '600px';
+    mkChart('c3').setOption({
+      grid:{left:230,right:70,top:8,bottom:34},
+      legend:{show:false},
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+        formatter:p=>{const r=byRet[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>${label} ${r[retPeriod]}%</b>`;}},
+      xAxis:{min:mn,max:mx,name:label+'收益率 %',nameLocation:'middle',nameGap:26,axisLabel:{formatter:'{value}%'},splitLine:{lineStyle:{color:'#eee'}}},
+      yAxis:{type:'category',inverse:true,data:byRet.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:13}},
+      series:[{type:'bar',barWidth:18,
+        data:byRet.map(r=>({value:r[retPeriod],itemStyle:{color:clsColor(r.cls),borderRadius:[0,5,5,0]}})),
+        label:{show:true,position:'right',fontWeight:'bold',fontSize:13,formatter:p=>p.value+'%'}}]
+    }, true);
+  }
+  charts['c3'].resize();
+}
+
+boot().catch(e=>{ document.getElementById('meta').textContent='加载失败：'+e.message; console.error(e); });
+</script>
+</body>
+</html>
