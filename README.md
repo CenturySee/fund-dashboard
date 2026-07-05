@@ -22,17 +22,31 @@ fund-dashboard/
 
 ## 更新与预览
 
-两个项目的 `run_weekly.sh` 末尾都会调 `node ../fund-dashboard/gen_web.js`，
-**谁跑都会重建全部指数**，所以任一项目更新后看板都是最新的。也可手动：
+纳指100 与标普500 是**两个独立项目**，各自抓自己的基金，需分别更新。两个项目的
+`run_weekly.sh` 末尾都会调 `node ../fund-dashboard/gen_web.js`，**谁跑都会重建全部指数**，
+所以跑完后看板数据即最新最全。
+
+**每周一键更新 + 上线（推荐）：**
 
 ```bash
-node gen_web.js
-cd web && python -m http.server 8080      # 本地预览
+bash update_all.sh        # 刷新纳指100 → 刷新标普500 → 提交推送，约1分钟后线上生效
 ```
+
+**只更新某一个指数：** 直接跑对应项目的 `run_weekly.sh`，再 `bash deploy.sh`：
+
+```bash
+bash ../nasdq100/run_weekly.sh    # 或 ../sp500/run_weekly.sh
+bash deploy.sh                    # 提交推送；数据没变会自动跳过
+```
+
+本地预览：`node gen_web.js && cd web && python -m http.server 8080`
 
 ## 部署
 
-`web/` 是纯静态目录，整个推到 GitHub Pages / Vercel 即可（`web/data/` 是生成产物，git 部署需一并 commit）。
+线上：**https://centurysee.github.io/fund-dashboard/**（GitHub Pages）。
+`.github/workflows/pages.yml` 在每次 push 到 `main` 时自动把 `web/` 发布上线——
+`deploy.sh` / `update_all.sh` 已封装好 commit+push，日常无需手动操作。
+`web/data/` 是生成产物但需一并提交（静态站点靠它取数）。
 
 ## 说明
 
