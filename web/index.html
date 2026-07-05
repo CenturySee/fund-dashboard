@@ -541,7 +541,7 @@ function chart1(){
   const R = rp();
   mkChart('c1').setOption({
     grid:{left:R.catLeft,right:R.catRight,top:8,bottom:34},
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
       formatter:p=>{const r=top[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>综合评分 ${r.score}</b>`;}},
     xAxis:{max:100,name:'综合评分',nameLocation:'middle',nameGap:26,axisLine:{show:false},splitLine:{lineStyle:{color:'#eee'}}},
     yAxis:{type:'category',inverse:true,data:top.map(R.catLabel),axisLabel:{fontSize:R.catFont}},
@@ -562,7 +562,7 @@ function chart2(){
   const R = rp();
   mkChart('c2').setOption({
     grid:{left:R.narrow?52:70,right:R.narrow?18:40,top:24,bottom:R.narrow?52:60},
-    tooltip:{trigger:'item',formatter:p=>{const r=p.data.r;
+    tooltip:{trigger:'item',confine:true,formatter:p=>{const r=p.data.r;
       return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>运作费率 ${r.oper}% · 跟踪误差 ${r.err}%<br/>规模 ${r.scale}亿`;}},
     xAxis:{name:R.narrow?'运作费率%':'运作费率 %（越低越省）',min:xmin,max:xmax,nameLocation:'middle',nameGap:R.narrow?24:30,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
     yAxis:{name:R.narrow?'跟踪误差%':'年化跟踪误差 %（越低跟得越准）',min:ymin,max:ymax,nameLocation:'middle',nameGap:R.narrow?32:44,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
@@ -604,7 +604,7 @@ function chart3(){
     mkChart('c3').setOption({
       grid:{left:R.catLeft,right:R.narrow?18:60,top:34,bottom:40},
       legend:{top:2, data:avail.map(([,t])=>t)},
-      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
         formatter:p=>{const r=top[p[0].dataIndex];
           return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>`+
             avail.map(([k,t])=>`${t}：<b>${r[k]!=null?r[k]+'%':'—'}</b>`).join('<br/>');}},
@@ -624,7 +624,7 @@ function chart3(){
     mkChart('c3').setOption({
       grid:{left:R.catLeft,right:R.narrow?40:70,top:8,bottom:34},
       legend:{show:false},
-      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,
         formatter:p=>{const r=byRet[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>${label} ${r[retPeriod]}%</b>`;}},
       xAxis:{min:mn,max:mx,name:label+'收益率 %',nameLocation:'middle',nameGap:26,axisLabel:{formatter:'{value}%'},splitLine:{lineStyle:{color:'#eee'}}},
       yAxis:{type:'category',inverse:true,data:byRet.map(R.catLabel),axisLabel:{fontSize:R.catFont}},
