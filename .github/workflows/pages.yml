@@ -4,6 +4,11 @@ name: Deploy dashboard to GitHub Pages
 on:
   push:
     branches: [main]
+    # 纯文档/配置改动不触发部署（注意不排除 web/data 下的 changes.md，那是站点内容）
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+      - '.gitattributes'
   workflow_dispatch:
 
 permissions:
