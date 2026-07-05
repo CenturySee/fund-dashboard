@@ -3,6 +3,10 @@
 把 `nasdq100/` 和 `sp500/` 两个项目每期的快照，汇成一个**可切换指数**的静态网页。
 顶部切指数（纳指100 / 标普500），下面切快照日期，两层筛选，一个 URL。
 
+**功能**：吸顶指数/目录切换 · 本期变化 diff · 限购信息表（状态/份额/搜索/分页，
+含「跟踪指数」列区分标准与等权重指数）· 三张交互 ECharts（评分榜/效率地图/收益排行）·
+自适应横屏竖屏窄屏。
+
 ## 结构
 
 ```
@@ -47,6 +51,11 @@ bash deploy.sh                    # 提交推送；数据没变会自动跳过
 `.github/workflows/pages.yml` 在每次 push 到 `main` 时自动把 `web/` 发布上线——
 `deploy.sh` / `update_all.sh` 已封装好 commit+push，日常无需手动操作。
 `web/data/` 是生成产物但需一并提交（静态站点靠它取数）。
+
+> **部署失败怎么办**：偶尔 Actions 报 `Deployment failed, try again later`（GitHub Pages
+> 后端临时故障，即使状态页显示正常）。**别用 `gh run rerun --failed`**——它会重传 artifact
+> 导致「两个同名 artifact」越修越乱。正确做法是隔几分钟触发一次全新运行：
+> `gh workflow run pages.yml --repo CenturySee/fund-dashboard`，或再 push 一个小改动。
 
 ## 说明
 
