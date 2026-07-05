@@ -106,7 +106,26 @@
   .legend{font-size:12.5px;color:var(--sub);margin-top:6px;}
   .legend b{color:var(--ink);}
   footer{color:var(--sub);font-size:12px;margin-top:26px;text-align:center;}
-  @media(max-width:640px){ .chart{height:420px;} h1{font-size:20px;} .iseg button{padding:7px 14px;font-size:14px;} }
+  /* 平板 / 横屏手机 */
+  @media(max-width:860px){
+    .wrap{padding:18px 14px 48px;}
+    .card{padding:16px 15px;}
+    .chart{height:440px;}
+  }
+  /* 竖屏手机 */
+  @media(max-width:560px){
+    .wrap{padding:14px 11px 40px;}
+    h1{font-size:19px;}
+    .card{padding:14px 12px;}
+    .card h2{font-size:16px;}
+    .chart{height:360px;} #c2{height:440px;}
+    .iseg button{padding:7px 13px;font-size:14px;}
+    .toc a{padding:4px 9px;font-size:12px;}
+    th,td{padding:6px 7px;font-size:12px;}
+    td.name,th.name{min-width:150px;}
+    .tbl-tools{gap:8px;}
+    .tbl-tools input{min-width:0;flex:1 1 130px;}
+  }
 </style>
 </head>
 <body>
@@ -231,7 +250,12 @@ async function boot(){
   });
   document.getElementById('q').oninput = () => { page=1; renderTable(); };
   wireToc();
-  window.addEventListener('resize', () => Object.values(charts).forEach(c=>c && c.resize()));
+  let _rz;
+  window.addEventListener('resize', () => {
+    Object.values(charts).forEach(c=>c && c.resize());        // 立即重排，跟手
+    clearTimeout(_rz);                                        // 稳定后重算 grid/标签(横竖屏切换生效)
+    _rz = setTimeout(()=>{ if(RANK.length){ chart1(); chart2(); chart3(); } }, 200);
+  });
 
   await selectIndex(idx.default || idx.indices[0].key);
 }
@@ -496,17 +520,34 @@ function mkChart(id){
 }
 function renderCharts(){ chart1(); chart2(); renderPeriodSel(); chart3(); }
 
+/* 按视口宽度给图表一组自适应参数（ECharts 内部布局不能靠 CSS，只能渲染时算） */
+function rp(){
+  const w = window.innerWidth;
+  const narrow = w < 560, mid = w < 860;
+  return {
+    narrow, mid,
+    catLeft:  narrow ? 96 : (mid ? 150 : 230),      // 分类图 Y 轴左边距
+    catRight: narrow ? 40 : 64,
+    catFont:  narrow ? 10 : (mid ? 11 : 13),
+    barLabelFont: narrow ? 11 : 13,
+    barWidth: narrow ? 13 : (mid ? 16 : 20),
+    // 窄屏 Y 轴标签只留简称，宽屏带代码+份额
+    catLabel: r => narrow ? r.sname : r.sname + '  ' + r.code + ' ' + r.cls,
+  };
+}
+
 function chart1(){
   const top = RANK.slice(0,12);
+  const R = rp();
   mkChart('c1').setOption({
-    grid:{left:230,right:64,top:8,bottom:34},
+    grid:{left:R.catLeft,right:R.catRight,top:8,bottom:34},
     tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
       formatter:p=>{const r=top[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>综合评分 ${r.score}</b>`;}},
     xAxis:{max:100,name:'综合评分',nameLocation:'middle',nameGap:26,axisLine:{show:false},splitLine:{lineStyle:{color:'#eee'}}},
-    yAxis:{type:'category',inverse:true,data:top.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:13}},
-    series:[{type:'bar',barWidth:20,
+    yAxis:{type:'category',inverse:true,data:top.map(R.catLabel),axisLabel:{fontSize:R.catFont}},
+    series:[{type:'bar',barWidth:R.barWidth,
       data:top.map(r=>({value:r.score,itemStyle:{color:clsColor(r.cls),borderRadius:[0,5,5,0]}})),
-      label:{show:true,position:'right',fontWeight:'bold',fontSize:13,formatter:'{c}'}}]
+      label:{show:true,position:'right',fontWeight:'bold',fontSize:R.barLabelFont,formatter:'{c}'}}]
   }, true);
 }
 function chart2(){
@@ -518,20 +559,21 @@ function chart2(){
   const ymin = Math.max(0, Math.floor((Math.min(...ey)-0.1)*10)/10);
   const ymax = Math.ceil((Math.max(...ey)+0.1)*10)/10;
   const zx = xmin + (xmax-xmin)*0.35, zy = ymin + (ymax-ymin)*0.45;   // 甜区：左下角
+  const R = rp();
   mkChart('c2').setOption({
-    grid:{left:70,right:40,top:24,bottom:60},
+    grid:{left:R.narrow?52:70,right:R.narrow?18:40,top:24,bottom:R.narrow?52:60},
     tooltip:{trigger:'item',formatter:p=>{const r=p.data.r;
       return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>运作费率 ${r.oper}% · 跟踪误差 ${r.err}%<br/>规模 ${r.scale}亿`;}},
-    xAxis:{name:'运作费率 %（越低越省）',min:xmin,max:xmax,nameLocation:'middle',nameGap:30,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
-    yAxis:{name:'年化跟踪误差 %（越低跟得越准）',min:ymin,max:ymax,nameLocation:'middle',nameGap:44,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
+    xAxis:{name:R.narrow?'运作费率%':'运作费率 %（越低越省）',min:xmin,max:xmax,nameLocation:'middle',nameGap:R.narrow?24:30,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
+    yAxis:{name:R.narrow?'跟踪误差%':'年化跟踪误差 %（越低跟得越准）',min:ymin,max:ymax,nameLocation:'middle',nameGap:R.narrow?32:44,splitLine:{lineStyle:{type:'dashed',color:'#eee'}}},
     series:[{type:'scatter',
       markArea:{silent:true,itemStyle:{color:'rgba(46,184,114,0.13)'},
-        label:{show:true,position:['6%','90%'],formatter:'甜区：又便宜又跟得准',color:'#27ae60',fontSize:12,fontWeight:'bold'},
+        label:{show:true,position:['6%','90%'],formatter:R.narrow?'甜区':'甜区：又便宜又跟得准',color:'#27ae60',fontSize:12,fontWeight:'bold'},
         data:[[{xAxis:xmin,yAxis:ymin},{xAxis:zx,yAxis:zy}]]},
       data:pts.map(r=>({value:[r.oper,r.err],r,
-        symbolSize:Math.max(14,Math.min(58,Math.sqrt(r.scale||1)*7)),
+        symbolSize:Math.max(R.narrow?9:14,Math.min(R.narrow?32:58,Math.sqrt(r.scale||1)*(R.narrow?5:7))),
         itemStyle:{color:clsColor(r.cls),opacity:.8,borderColor:'#fff',borderWidth:1.5}})),
-      label:{show:true,formatter:p=>p.data.r.sname+p.data.r.cls,position:'top',fontSize:11,color:'#333'}}]
+      label:{show:!R.narrow,formatter:p=>p.data.r.sname+p.data.r.cls,position:'top',fontSize:11,color:'#333'}}]
   }, true);
 }
 const PERIODS = [['r3m','近3月'],['r6m','近6月'],['r1y','近1年'],['r3y','近3年']];
@@ -557,16 +599,17 @@ function chart3(){
     const top = RANK.filter(r=>r[anchor]!=null).sort((a,b)=>b[anchor]-a[anchor]).slice(0,15);
     const allVals = top.flatMap(r=>avail.map(([k])=>r[k]).filter(v=>v!=null));
     const mn = Math.floor((Math.min(...allVals)-1)/5)*5, mx = Math.ceil((Math.max(...allVals)+1)/5)*5;
-    dom.style.height = '760px';
+    const R = rp();
+    dom.style.height = (R.narrow ? 620 : 760) + 'px';
     mkChart('c3').setOption({
-      grid:{left:230,right:60,top:34,bottom:40},
+      grid:{left:R.catLeft,right:R.narrow?18:60,top:34,bottom:40},
       legend:{top:2, data:avail.map(([,t])=>t)},
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
         formatter:p=>{const r=top[p[0].dataIndex];
           return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/>`+
             avail.map(([k,t])=>`${t}：<b>${r[k]!=null?r[k]+'%':'—'}</b>`).join('<br/>');}},
       xAxis:{min:mn,max:mx,name:'收益率 %',nameLocation:'middle',nameGap:26,axisLabel:{formatter:'{value}%'},splitLine:{lineStyle:{color:'#eee'}}},
-      yAxis:{type:'category',inverse:true,data:top.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:12}},
+      yAxis:{type:'category',inverse:true,data:top.map(R.catLabel),axisLabel:{fontSize:R.narrow?10:12}},
       series:avail.map(([k,t])=>({name:t,type:'bar',barGap:'10%',barCategoryGap:'32%',
         itemStyle:{color:PCOLOR[k],borderRadius:[0,3,3,0]},
         data:top.map(r=>r[k])}))
@@ -576,17 +619,18 @@ function chart3(){
     const byRet = RANK.filter(r=>r[retPeriod]!=null).sort((a,b)=>b[retPeriod]-a[retPeriod]).slice(0,15);
     const rv = byRet.map(r=>r[retPeriod]);
     const mn = Math.floor((Math.min(...rv)-0.3)*2)/2, mx = Math.ceil((Math.max(...rv)+0.3)*2)/2;
+    const R = rp();
     dom.style.height = '600px';
     mkChart('c3').setOption({
-      grid:{left:230,right:70,top:8,bottom:34},
+      grid:{left:R.catLeft,right:R.narrow?40:70,top:8,bottom:34},
       legend:{show:false},
       tooltip:{trigger:'axis',axisPointer:{type:'shadow'},
         formatter:p=>{const r=byRet[p[0].dataIndex];return `${r.name}<br/>代码 ${r.code} · ${r.cls}类<br/><b>${label} ${r[retPeriod]}%</b>`;}},
       xAxis:{min:mn,max:mx,name:label+'收益率 %',nameLocation:'middle',nameGap:26,axisLabel:{formatter:'{value}%'},splitLine:{lineStyle:{color:'#eee'}}},
-      yAxis:{type:'category',inverse:true,data:byRet.map(r=>r.sname+'  '+r.code+' '+r.cls),axisLabel:{fontSize:13}},
-      series:[{type:'bar',barWidth:18,
+      yAxis:{type:'category',inverse:true,data:byRet.map(R.catLabel),axisLabel:{fontSize:R.catFont}},
+      series:[{type:'bar',barWidth:R.barWidth,
         data:byRet.map(r=>({value:r[retPeriod],itemStyle:{color:clsColor(r.cls),borderRadius:[0,5,5,0]}})),
-        label:{show:true,position:'right',fontWeight:'bold',fontSize:13,formatter:p=>p.value+'%'}}]
+        label:{show:true,position:'right',fontWeight:'bold',fontSize:R.barLabelFont,formatter:p=>p.value+'%'}}]
     }, true);
   }
   charts['c3'].resize();
