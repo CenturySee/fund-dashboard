@@ -100,6 +100,14 @@
   .seg button{padding:5px 12px;border:0;background:#fff;cursor:pointer;font-size:13px;color:var(--sub);border-right:1px solid var(--line);}
   .seg button:last-child{border-right:0;}
   .seg button.on{background:var(--accent);color:#fff;}
+  /* 导出按钮：右对齐的幽灵按钮，hover 填充，导出后 .done 反馈 */
+  .dlbtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+    border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:8px;
+    cursor:pointer;font-size:13px;font-weight:600;transition:.15s;white-space:nowrap;}
+  .dlbtn:hover{background:var(--accent);color:#fff;}
+  .dlbtn:active{transform:translateY(1px);}
+  .dlbtn.done{border-color:var(--up);color:var(--up);background:#e9f7ef;}
+  .dlbtn:disabled{opacity:.5;cursor:default;pointer-events:none;}
   /* charts */
   .chart{width:100%;height:480px;}
   #c2{height:560px;} #c3{height:600px;}
@@ -173,6 +181,7 @@
       <input id="q" placeholder="筛选：基金名称 / 代码">
       <span id="chips"></span>
       <span class="meta" id="tblCount"></span>
+      <button id="dl" class="dlbtn" title="导出当前筛选的限购信息为 Excel">⬇ 导出 Excel</button>
     </div>
     <div class="scroll"><table id="tbl"></table></div>
     <div class="pager" id="pager"></div>
@@ -249,6 +258,7 @@ async function boot(){
     };
   });
   document.getElementById('q').oninput = () => { page=1; renderTable(); };
+  document.getElementById('dl').onclick = exportExcel;
   wireToc();
   let _rz;
   window.addEventListener('resize', () => {
@@ -634,6 +644,161 @@ function chart3(){
     }, true);
   }
   charts['c3'].resize();
+}
+
+/* ---------- 导出 Excel（真·xlsx，零依赖：自建 zip 打包 + OOXML） ---------- */
+const xmlEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// 样式表索引（与 styles.xml 里的 cellXfs 顺序一一对应）
+const XS = { left:0, header:1, st:{open:2,limit:3,stop:4}, cls:{A:5,C:6,E:7,I:8,D:9},
+             money:10, pct:11, int:12, num1:13, dim:14, center:15 };
+const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0&quot;元&quot;"/><numFmt numFmtId="165" formatCode="0.00&quot;%&quot;"/><numFmt numFmtId="166" formatCode="0.0"/></numFmts>
+<fonts count="11">
+<font><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FF159A5B"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FFB8791B"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FFD14343"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FFC0392B"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FF2471C4"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FFE08E0B"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FF1F9E6F"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><b/><color rgb="FF7D5BA6"/><sz val="11"/><name val="微软雅黑"/></font>
+<font><color rgb="FF9AA0AA"/><sz val="11"/><name val="微软雅黑"/></font>
+</fonts>
+<fills count="6">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF2563EB"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE9F7EF"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFDF3E3"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFDECEC"/></patternFill></fill>
+</fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><bottom style="thin"><color rgb="FFE7E9EE"/></bottom></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="16">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="7" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="8" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="9" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="0" fontId="10" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+</cellXfs>
+</styleSheet>`;
+
+// --- 极简 ZIP（store，无压缩）+ CRC32 ---
+const CRC_TBL = (()=>{ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320 ^ (c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(bytes){ let c=0xFFFFFFFF; for(let i=0;i<bytes.length;i++) c = CRC_TBL[(c^bytes[i])&0xFF] ^ (c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(files){
+  const enc = new TextEncoder();
+  const u16=(a,v)=>a.push(v&0xFF,(v>>>8)&0xFF);
+  const u32=(a,v)=>a.push(v&0xFF,(v>>>8)&0xFF,(v>>>16)&0xFF,(v>>>24)&0xFF);
+  const parts=[], central=[]; let offset=0;
+  for(const f of files){
+    const name = enc.encode(f.name);
+    const data = enc.encode(f.data);
+    const crc = crc32(data);
+    const local=[]; u32(local,0x04034b50); u16(local,20); u16(local,0); u16(local,0);
+    u16(local,0); u16(local,0); u32(local,crc); u32(local,data.length); u32(local,data.length);
+    u16(local,name.length); u16(local,0); for(const b of name) local.push(b);
+    parts.push(Uint8Array.from(local), data);
+    const cen=[]; u32(cen,0x02014b50); u16(cen,20); u16(cen,20); u16(cen,0); u16(cen,0);
+    u16(cen,0); u16(cen,0); u32(cen,crc); u32(cen,data.length); u32(cen,data.length);
+    u16(cen,name.length); u16(cen,0); u16(cen,0); u16(cen,0); u16(cen,0); u32(cen,0); u32(cen,offset);
+    for(const b of name) cen.push(b); central.push(Uint8Array.from(cen));
+    offset += local.length + data.length;
+  }
+  let cSize=0; central.forEach(c=>cSize+=c.length);
+  const end=[]; u32(end,0x06054b50); u16(end,0); u16(end,0); u16(end,files.length); u16(end,files.length);
+  u32(end,cSize); u32(end,offset); u16(end,0);
+  const all=[...parts, ...central, Uint8Array.from(end)];
+  let total=0; all.forEach(c=>total+=c.length);
+  const out=new Uint8Array(total); let p=0; for(const c of all){ out.set(c,p); p+=c.length; }
+  return out;
+}
+
+const colLetter = n => { let s=''; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
+const EXPORT_WID = {name:34,idx:12,code:11,cls:7,status:12,limN:14,score:8,oper:11,err:11,scale:11,r1y:10};
+// 单元格：{n:数值样式,v} 或 {s:字符串样式,v}
+function exportCell(c, r){
+  const dim = {s:XS.dim, v:'—'};
+  switch(c.k){
+    case 'name':   return {s:XS.left,   v:r.name};
+    case 'idx':    return {s:XS.center, v:r.idx};
+    case 'code':   return {s:XS.center, v:r.code};
+    case 'cls':    return {s:XS.cls[r.cls]!=null?XS.cls[r.cls]:XS.center, v:r.cls};
+    case 'status': return {s:XS.st[r.status], v:r.statusTxt};
+    case 'limN':   return r.limN==null ? dim : {n:XS.money, v:r.limN};
+    case 'score':  return r.score==null? dim : {n:XS.int,   v:r.score};
+    case 'oper':   return r.oper==null ? dim : {n:XS.pct,   v:r.oper};
+    case 'err':    return r.err==null  ? dim : {n:XS.pct,   v:r.err};
+    case 'scale':  return r.scale==null? dim : {n:XS.num1,  v:r.scale};
+    case 'r1y':    return r.r1y==null  ? dim : {n:XS.pct,   v:r.r1y};
+    default:       return {s:XS.center, v:''};
+  }
+}
+function exportExcel(){
+  const btn = document.getElementById('dl');
+  const rows = filteredRows();
+  if(!rows.length){ return; }
+  const cols = visibleCols().filter(c=>c.k!=='_rank');
+  const nm = MANIFEST.name || CUR;
+  const date = document.getElementById('dateSel').value;
+
+  const header = cols.map((c,ci)=>`<c r="${colLetter(ci)}1" t="inlineStr" s="${XS.header}"><is><t xml:space="preserve">${xmlEsc(c.t)}</t></is></c>`).join('');
+  let body = `<row r="1">${header}</row>`;
+  rows.forEach((r,ri)=>{
+    const R=ri+2;
+    const cells = cols.map((c,ci)=>{
+      const d = exportCell(c,r), ref=colLetter(ci)+R;
+      return d.n!=null
+        ? `<c r="${ref}" s="${d.n}"><v>${d.v}</v></c>`
+        : `<c r="${ref}" s="${d.s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(d.v)}</t></is></c>`;
+    }).join('');
+    body += `<row r="${R}">${cells}</row>`;
+  });
+  const colsXml = '<cols>'+cols.map((c,ci)=>`<col min="${ci+1}" max="${ci+1}" width="${EXPORT_WID[c.k]||12}" customWidth="1"/>`).join('')+'</cols>';
+  const ref = `A1:${colLetter(cols.length-1)}${rows.length+1}`;
+  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>${colsXml}<sheetData>${body}</sheetData><autoFilter ref="${ref}"/></worksheet>`;
+
+  const files = [
+    {name:'[Content_Types].xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
+    {name:'_rels/.rels', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="限购信息" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:'xl/styles.xml', data:STYLES_XML},
+    {name:'xl/worksheets/sheet1.xml', data:sheet},
+  ];
+
+  try{
+    const blob = new Blob([zipStore(files)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${nm}_限购信息_${date}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    const orig = btn.textContent;
+    btn.textContent = `✓ 已导出 ${rows.length} 只`; btn.classList.add('done');
+    setTimeout(()=>{ btn.textContent = orig; btn.classList.remove('done'); }, 1800);
+  }catch(e){
+    console.error(e); alert('导出失败：'+e.message);
+  }
 }
 
 boot().catch(e=>{ document.getElementById('meta').textContent='加载失败：'+e.message; console.error(e); });
