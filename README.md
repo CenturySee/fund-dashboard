@@ -34,7 +34,7 @@ fund-dashboard/
 **每周一键更新 + 上线（推荐）：**
 
 ```bash
-bash update_all.sh        # 刷新纳指100 → 刷新标普500 → 提交推送，约1分钟后线上生效
+bash update_all.sh        # 刷新纳指100 → 刷新标普500 → 部署，约1分钟后线上生效
 ```
 
 **只更新某一个指数：** 直接跑对应项目的 `run_weekly.sh`，再 `bash deploy.sh`：
@@ -44,14 +44,36 @@ bash ../nasdq100/run_weekly.sh    # 或 ../sp500/run_weekly.sh
 bash deploy.sh                    # 提交推送；数据没变会自动跳过
 ```
 
+`update_all.sh` / `deploy.sh` 都接受部署目标参数 `[pages|vps|both]`（默认 `pages`，透传）：
+
+```bash
+bash deploy.sh vps        # 只发到自建 VPS
+bash update_all.sh both   # 刷数据 + 同时发 Pages 和 VPS
+```
+
 本地预览：`node gen_web.js && cd web && python -m http.server 8080`
 
 ## 部署
 
-线上：**https://centurysee.github.io/fund-dashboard/**（GitHub Pages）。
+纯静态站（`web/` 目录，无后端），支持两种发布目标，可单选或双发：
+
+**① GitHub Pages（默认）：** 线上 **https://centurysee.github.io/fund-dashboard/**。
 `.github/workflows/pages.yml` 在每次 push 到 `main` 时自动把 `web/` 发布上线——
 `deploy.sh` / `update_all.sh` 已封装好 commit+push，日常无需手动操作。
 `web/data/` 是生成产物但需一并提交（静态站点靠它取数）。
+
+**② 自建 VPS（`deploy/`）：** nginx 监听非标端口 8443 + Cloudflare Origin Rules 把
+443 回源改写到 8443，访客走 `https://fund.imak.top`（URL 不带端口）。完整步骤见
+[`deploy/DEPLOY-VPS.md`](deploy/DEPLOY-VPS.md)，nginx 配置见 [`deploy/nginx-fund.imak.top.conf`](deploy/nginx-fund.imak.top.conf)。
+VPS 目标用环境变量配置，脚本不硬编码主机：
+
+```bash
+export VPS_HOST=deploy@你的IP
+export VPS_DEST=/var/www/fund-dashboard/web
+bash deploy.sh vps        # 或 both（同时发 Pages）
+```
+
+`deploy.sh vps` 走 `rsync --delete` 只传差异，静态站落盘即生效，无需 reload nginx。
 
 > **部署失败怎么办**：偶尔 Actions 报 `Deployment failed, try again later`（GitHub Pages
 > 后端临时故障，即使状态页显示正常）。**别用 `gh run rerun --failed`**——它会重传 artifact
