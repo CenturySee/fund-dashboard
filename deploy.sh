@@ -15,7 +15,7 @@ TARGET="${1:-pages}"
 
 VPS_HOST="${VPS_HOST:-root@155.94.155.248}"           # 例：deploy@203.0.113.10
 VPS_TMP="${VPS_TMP:-/tmp/funds-web}"           # 中转目录（rsync 落点，再 sudo 搬到 DEST）
-VPS_DEST="${VPS_DEST:-/var/www/funds/web}"
+VPS_DEST="${VPS_DEST:-/var/www/funds}"
 
 deploy_pages() {
   git add -A
@@ -38,10 +38,13 @@ deploy_vps() {
     echo "⚠ 未配置 VPS_HOST，跳过 VPS。用法：VPS_HOST=user@你的IP bash deploy.sh vps"
     return 1
   fi
-  echo "→ rsync web/ 到 $VPS_HOST:$VPS_DEST"
-  rsync -avz --delete ./web/ "$VPS_HOST:$VPS_TMP/" \
-    && ssh "$VPS_HOST" "sudo rsync -a --delete '$VPS_TMP/' '$VPS_DEST/'" \
-    && echo "✓ VPS 已更新（静态站 rsync 即时生效，无需 reload nginx）"
+  # echo "→ rsync web/ 到 $VPS_HOST:$VPS_DEST"
+  # rsync -avz --delete ./web/ "$VPS_HOST:$VPS_TMP/" \
+  #   && ssh "$VPS_HOST" "sudo rsync -a --delete '$VPS_TMP/' '$VPS_DEST/'" \
+  #   && echo "✓ VPS 已更新（静态站 rsync 即时生效，无需 reload nginx）"
+  echo "→ scp -r web/ 到 $VPS_HOST:$VPS_DEST"
+  scp -r ./web/ "$VPS_HOST:$VPS_DEST/" \
+    && echo "✓ VPS 已更新（静态站 scp 即时生效，无需 reload nginx）"
 }
 
 case "$TARGET" in

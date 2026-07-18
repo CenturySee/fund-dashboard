@@ -69,7 +69,7 @@ VPS 目标用环境变量配置，脚本不硬编码主机：
 
 ```bash
 export VPS_HOST=deploy@你的IP
-export VPS_DEST=/var/www/fund-dashboard/web
+export VPS_DEST=/var/www/fund-dashboard
 bash deploy.sh vps        # 或 both（同时发 Pages）
 ```
 

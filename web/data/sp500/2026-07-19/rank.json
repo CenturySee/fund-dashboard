@@ -1,0 +1,40 @@
+[
+  {
+    "code": "017641",
+    "name": "摩根标普500指数(QDII)人民币A",
+    "cls": "A",
+    "score": 100,
+    "oper": 0.65,
+    "err": 1.7,
+    "scale": 36.62,
+    "lim": 10,
+    "r1y": 13.88,
+    "parts": {
+      "sOper": 100,
+      "sScale": 100,
+      "sR1y": 100,
+      "sErr": 100,
+      "sLim": 100
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019305",
+    "name": "摩根标普500指数(QDII)人民币C",
+    "cls": "C",
+    "score": 10,
+    "oper": 0.95,
+    "err": 1.71,
+    "scale": 14.18,
+    "lim": 10,
+    "r1y": 13.54,
+    "parts": {
+      "sOper": 0,
+      "sScale": 0,
+      "sR1y": 0,
+      "sErr": 0,
+      "sLim": 100
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  }
+]
