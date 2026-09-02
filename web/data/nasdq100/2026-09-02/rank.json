@@ -1,0 +1,534 @@
+[
+  {
+    "code": "018043",
+    "name": "天弘纳斯达克100指数发起(QDII)A",
+    "cls": "A",
+    "score": 80,
+    "oper": 0.6,
+    "err": 1.47,
+    "scale": 30.75,
+    "lim": 100,
+    "r1y": 18.77,
+    "parts": {
+      "sOper": 100,
+      "sScale": 75,
+      "sR1y": 72,
+      "sErr": 65,
+      "sLim": 39
+    },
+    "applyTxt": "限大额·单日≤100.00元"
+  },
+  {
+    "code": "016452",
+    "name": "南方纳斯达克100指数发起(QDII)A",
+    "cls": "A",
+    "score": 76,
+    "oper": 0.65,
+    "err": 1.43,
+    "scale": 62.1,
+    "lim": 10,
+    "r1y": 18.37,
+    "parts": {
+      "sOper": 93,
+      "sScale": 88,
+      "sR1y": 59,
+      "sErr": 68,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019172",
+    "name": "摩根纳斯达克100指数(QDII)人民币A",
+    "cls": "A",
+    "score": 72,
+    "oper": 0.6,
+    "err": 2.34,
+    "scale": 29.69,
+    "lim": 10,
+    "r1y": 19.06,
+    "parts": {
+      "sOper": 100,
+      "sScale": 74,
+      "sR1y": 81,
+      "sErr": 0,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "040046",
+    "name": "华安纳斯达克100ETF联接(QDII)A",
+    "cls": "A",
+    "score": 71,
+    "oper": 0.8,
+    "err": 1,
+    "scale": 58.1,
+    "lim": 10,
+    "r1y": 18.62,
+    "parts": {
+      "sOper": 71,
+      "sScale": 86,
+      "sR1y": 67,
+      "sErr": 100,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019547",
+    "name": "招商纳斯达克100ETF发起式联接(QDII)A",
+    "cls": "A",
+    "score": 70,
+    "oper": 0.65,
+    "err": 1.73,
+    "scale": 21.78,
+    "lim": 10,
+    "r1y": 18.7,
+    "parts": {
+      "sOper": 93,
+      "sScale": 68,
+      "sR1y": 69,
+      "sErr": 46,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "018966",
+    "name": "汇添富纳斯达克100ETF发起式联接(QDII)人民币A",
+    "cls": "A",
+    "score": 70,
+    "oper": 0.65,
+    "err": 1.72,
+    "scale": 16.33,
+    "lim": 10000,
+    "r1y": 16.93,
+    "parts": {
+      "sOper": 93,
+      "sScale": 63,
+      "sR1y": 14,
+      "sErr": 46,
+      "sLim": 100
+    },
+    "applyTxt": "限大额·单日≤1.00万元"
+  },
+  {
+    "code": "016453",
+    "name": "南方纳斯达克100指数发起(QDII)C",
+    "cls": "C",
+    "score": 68,
+    "oper": 0.75,
+    "err": 1.43,
+    "scale": 48.33,
+    "lim": 10,
+    "r1y": 18.25,
+    "parts": {
+      "sOper": 79,
+      "sScale": 83,
+      "sR1y": 55,
+      "sErr": 68,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "018044",
+    "name": "天弘纳斯达克100指数发起(QDII)C",
+    "cls": "C",
+    "score": 67,
+    "oper": 0.8,
+    "err": 1.47,
+    "scale": 29.34,
+    "lim": 100,
+    "r1y": 18.54,
+    "parts": {
+      "sOper": 71,
+      "sScale": 74,
+      "sR1y": 64,
+      "sErr": 65,
+      "sLim": 39
+    },
+    "applyTxt": "限大额·单日≤100.00元"
+  },
+  {
+    "code": "019736",
+    "name": "宝盈纳斯达克100指数发起(QDII)A人民币",
+    "cls": "A",
+    "score": 66,
+    "oper": 0.65,
+    "err": 1.65,
+    "scale": 10.63,
+    "lim": 10,
+    "r1y": 18.31,
+    "parts": {
+      "sOper": 93,
+      "sScale": 55,
+      "sR1y": 57,
+      "sErr": 51,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019441",
+    "name": "万家纳斯达克100指数发起式(QDII)A",
+    "cls": "A",
+    "score": 65,
+    "oper": 0.65,
+    "err": 2.08,
+    "scale": 9.68,
+    "lim": 10,
+    "r1y": 18.95,
+    "parts": {
+      "sOper": 93,
+      "sScale": 54,
+      "sR1y": 77,
+      "sErr": 19,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019524",
+    "name": "华泰柏瑞纳斯达克100ETF发起式联接(QDII)A",
+    "cls": "A",
+    "score": 63,
+    "oper": 0.65,
+    "err": 1.57,
+    "scale": 8.16,
+    "lim": 10,
+    "r1y": 17.82,
+    "parts": {
+      "sOper": 93,
+      "sScale": 50,
+      "sR1y": 42,
+      "sErr": 57,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "160213",
+    "name": "国泰纳斯达克100指数",
+    "cls": "A",
+    "score": 62,
+    "oper": 1,
+    "err": 1.1,
+    "scale": 21.77,
+    "lim": 100,
+    "r1y": 19.68,
+    "parts": {
+      "sOper": 43,
+      "sScale": 68,
+      "sR1y": 100,
+      "sErr": 93,
+      "sLim": 39
+    },
+    "applyTxt": "限大额·单日≤100.00元"
+  },
+  {
+    "code": "270042",
+    "name": "广发纳斯达克100ETF联接人民币(QDII)A",
+    "cls": "A",
+    "score": 61,
+    "oper": 1,
+    "err": 1.03,
+    "scale": 122.23,
+    "lim": 5,
+    "r1y": 18.31,
+    "parts": {
+      "sOper": 43,
+      "sScale": 100,
+      "sR1y": 57,
+      "sErr": 98,
+      "sLim": 0
+    },
+    "applyTxt": "限大额·单日≤5.00元"
+  },
+  {
+    "code": "000834",
+    "name": "大成纳斯达克100ETF联接(QDII)A",
+    "cls": "A",
+    "score": 57,
+    "oper": 1,
+    "err": 1.01,
+    "scale": 48.87,
+    "lim": 10,
+    "r1y": 18.24,
+    "parts": {
+      "sOper": 43,
+      "sScale": 83,
+      "sR1y": 55,
+      "sErr": 99,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "021773",
+    "name": "汇添富纳斯达克100联接E",
+    "cls": "E",
+    "score": 57,
+    "oper": 0.75,
+    "err": 1.72,
+    "scale": 3.64,
+    "lim": 10000,
+    "r1y": 16.82,
+    "parts": {
+      "sOper": 79,
+      "sScale": 36,
+      "sR1y": 11,
+      "sErr": 46,
+      "sLim": 100
+    },
+    "applyTxt": "限大额·单日≤1.00万元"
+  },
+  {
+    "code": "014978",
+    "name": "华安纳斯达克100ETF联接(QDII)C",
+    "cls": "C",
+    "score": 52,
+    "oper": 1,
+    "err": 1,
+    "scale": 13.48,
+    "lim": 10,
+    "r1y": 18.38,
+    "parts": {
+      "sOper": 43,
+      "sScale": 60,
+      "sR1y": 60,
+      "sErr": 100,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019442",
+    "name": "万家纳斯达克100指数发起式(QDII)C",
+    "cls": "C",
+    "score": 49,
+    "oper": 0.85,
+    "err": 2.08,
+    "scale": 4.29,
+    "lim": 10,
+    "r1y": 18.71,
+    "parts": {
+      "sOper": 64,
+      "sScale": 39,
+      "sR1y": 70,
+      "sErr": 19,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019173",
+    "name": "摩根纳斯达克100指数(QDII)人民币C",
+    "cls": "C",
+    "score": 48,
+    "oper": 0.9,
+    "err": 2.33,
+    "scale": 10.8,
+    "lim": 10,
+    "r1y": 18.71,
+    "parts": {
+      "sOper": 57,
+      "sScale": 56,
+      "sR1y": 70,
+      "sErr": 1,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019737",
+    "name": "宝盈纳斯达克100指数发起(QDII)C人民币",
+    "cls": "C",
+    "score": 46,
+    "oper": 0.9,
+    "err": 1.65,
+    "scale": 4.06,
+    "lim": 10,
+    "r1y": 18.02,
+    "parts": {
+      "sOper": 57,
+      "sScale": 38,
+      "sR1y": 48,
+      "sErr": 51,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019525",
+    "name": "华泰柏瑞纳斯达克100ETF发起式联接(QDII)C",
+    "cls": "C",
+    "score": 46,
+    "oper": 0.9,
+    "err": 1.56,
+    "scale": 6.39,
+    "lim": 10,
+    "r1y": 17.51,
+    "parts": {
+      "sOper": 57,
+      "sScale": 46,
+      "sR1y": 32,
+      "sErr": 58,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "006479",
+    "name": "广发纳斯达克100ETF联接人民币(QDII)C",
+    "cls": "C",
+    "score": 45,
+    "oper": 1.2,
+    "err": 1.03,
+    "scale": 64.93,
+    "lim": 5,
+    "r1y": 18.08,
+    "parts": {
+      "sOper": 14,
+      "sScale": 88,
+      "sR1y": 50,
+      "sErr": 98,
+      "sLim": 0
+    },
+    "applyTxt": "限大额·单日≤5.00元"
+  },
+  {
+    "code": "022664",
+    "name": "华泰柏瑞纳斯达克100联接I",
+    "cls": "I",
+    "score": 45,
+    "oper": 0.75,
+    "err": 1.56,
+    "scale": 0.6,
+    "lim": 10,
+    "r1y": 17.65,
+    "parts": {
+      "sOper": 79,
+      "sScale": 3,
+      "sR1y": 37,
+      "sErr": 58,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "019548",
+    "name": "招商纳斯达克100ETF发起式联接(QDII)C",
+    "cls": "C",
+    "score": 44,
+    "oper": 1.05,
+    "err": 1.74,
+    "scale": 15.17,
+    "lim": 10,
+    "r1y": 18.23,
+    "parts": {
+      "sOper": 36,
+      "sScale": 62,
+      "sR1y": 55,
+      "sErr": 45,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "018967",
+    "name": "汇添富纳斯达克100ETF发起式联接(QDII)人民币C",
+    "cls": "C",
+    "score": 43,
+    "oper": 1.05,
+    "err": 1.72,
+    "scale": 11.09,
+    "lim": 10000,
+    "r1y": 16.47,
+    "parts": {
+      "sOper": 36,
+      "sScale": 56,
+      "sR1y": 0,
+      "sErr": 46,
+      "sLim": 100
+    },
+    "applyTxt": "限大额·单日≤1.00万元"
+  },
+  {
+    "code": "539001",
+    "name": "建信纳斯达克100指数(QDII)A人民币",
+    "cls": "A",
+    "score": 41,
+    "oper": 1,
+    "err": 2.25,
+    "scale": 21.76,
+    "lim": 10,
+    "r1y": 17.66,
+    "parts": {
+      "sOper": 43,
+      "sScale": 68,
+      "sR1y": 37,
+      "sErr": 7,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "008971",
+    "name": "大成纳斯达克100ETF联接(QDII)C",
+    "cls": "C",
+    "score": 31,
+    "oper": 1.3,
+    "err": 1.01,
+    "scale": 11.1,
+    "lim": 10,
+    "r1y": 17.89,
+    "parts": {
+      "sOper": 0,
+      "sScale": 56,
+      "sR1y": 44,
+      "sErr": 99,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "012752",
+    "name": "建信纳斯达克100指数(QDII)C人民币",
+    "cls": "C",
+    "score": 20,
+    "oper": 1.3,
+    "err": 2.25,
+    "scale": 12.88,
+    "lim": 10,
+    "r1y": 17.31,
+    "parts": {
+      "sOper": 0,
+      "sScale": 59,
+      "sR1y": 26,
+      "sErr": 7,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  },
+  {
+    "code": "023422",
+    "name": "建信纳斯达克100人民币D",
+    "cls": "D",
+    "score": 6,
+    "oper": 1.3,
+    "err": 2.25,
+    "scale": 0.52,
+    "lim": 10,
+    "r1y": 17.31,
+    "parts": {
+      "sOper": 0,
+      "sScale": 0,
+      "sR1y": 26,
+      "sErr": 7,
+      "sLim": 9
+    },
+    "applyTxt": "限大额·单日≤10.00元"
+  }
+]
