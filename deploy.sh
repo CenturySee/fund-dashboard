@@ -13,7 +13,8 @@ cd "$(dirname "$0")"
 
 TARGET="${1:-pages}"
 
-VPS_HOST="${VPS_HOST:-root@155.94.155.248}"           # 例：deploy@203.0.113.10
+# VPS_HOST="${VPS_HOST:-root@155.94.155.248}"           # 例：deploy@203.0.113.10
+VPS_HOST="${VPS_HOST:-racknerd-65201}"           # 例：deploy@203.0.113.10
 VPS_TMP="${VPS_TMP:-/tmp/funds-web}"           # 中转目录（rsync 落点，再 sudo 搬到 DEST）
 VPS_DEST="${VPS_DEST:-/var/www/funds}"
 
