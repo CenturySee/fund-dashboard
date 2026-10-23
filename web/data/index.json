@@ -3,16 +3,16 @@
     {
       "key": "nasdq100",
       "name": "纳指100",
-      "latest": "2026-10-16",
-      "count": 17
+      "latest": "2026-10-23",
+      "count": 18
     },
     {
       "key": "sp500",
       "name": "标普500",
-      "latest": "2026-10-16",
-      "count": 15
+      "latest": "2026-10-23",
+      "count": 16
     }
   ],
   "default": "nasdq100",
-  "generated": "2026-10-16T08:29:32.665Z"
+  "generated": "2026-10-23T08:01:37.083Z"
 }
