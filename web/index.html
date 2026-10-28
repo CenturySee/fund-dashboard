@@ -321,7 +321,9 @@ async function load(date){
     };
   });
   const nBuy = TABLE.filter(r=>r.status!=='stop').length, nStop = TABLE.length-nBuy;
-  document.getElementById('meta').textContent = `快照 ${date} · 可买 ${nBuy} 只 · 暂停 ${nStop} 只`;
+  const checked = MANIFEST.checkedAt || MANIFEST.generated;
+  const checkedText = checked ? new Date(checked).toLocaleString('zh-CN', {hour12:false}) : '';
+  document.getElementById('meta').textContent = `快照 ${date} · 最近核查 ${checkedText} · 可买 ${nBuy} 只 · 暂停 ${nStop} 只`;
   page = 1;
   renderDiff(diffMd, date);
   renderTable();

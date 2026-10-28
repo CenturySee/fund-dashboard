@@ -7,6 +7,7 @@
 //   web/echarts.min.js                        复用本地 echarts，免联网 CDN
 const fs = require('fs');
 const path = require('path');
+const { collapse } = require('./snapshot-history');
 
 const ROOT = __dirname;
 const WEB = path.join(ROOT, 'web');
@@ -38,26 +39,49 @@ for (const ix of INDICES) {
     .filter(d => isDate(d) && fs.statSync(path.join(outDir, d)).isDirectory())
     .sort().reverse();                 // 最新在前
 
-  const kept = [];
   const idxData = path.join(WDATA, ix.key);
-  for (const d of dates) {
+  const manifestPath = path.join(idxData, 'manifest.json');
+  const previous = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : {};
+  const snapshots = dates.flatMap(date => {
+    const dir = path.join(outDir, date);
+    if (!fs.existsSync(path.join(dir, 'rank.json')) || !fs.existsSync(path.join(dir, 'results.json'))) {
+      console.warn(`跳过 ${ix.key}/${date}：缺 rank.json/results.json`);
+      return [];
+    }
+    const results = JSON.parse(fs.readFileSync(path.join(dir, 'results.json'), 'utf8'));
+    if (!Array.isArray(results) || !results.length) throw new Error(`${ix.key}/${date} 数据为空或格式错误`);
+    return [{ date, results }];
+  });
+  const kept = collapse(snapshots).map(s => s.date).reverse();
+  if (!kept.length) { console.warn(`${ix.key} 无有效快照`); continue; }
+  // 采用抓取时间，而非页面生成时间。
+  const sourceTime = fs.statSync(path.join(outDir, snapshots[0].date, 'results.json')).mtime.toISOString();
+  const checkedAt = process.argv.includes(`--checked=${ix.key}`) ? new Date().toISOString()
+    : [previous.checkedAt || previous.generated || '', sourceTime].sort().pop();
+  for (const d of kept) {
     const sdir = path.join(outDir, d);
     const ddir = path.join(idxData, d);
     fs.mkdirSync(ddir, { recursive: true });
-    const hasRank = copyIf(path.join(sdir, 'rank.json'), path.join(ddir, 'rank.json'));
-    const hasRes  = copyIf(path.join(sdir, 'results.json'), path.join(ddir, 'results.json'));
+    copyIf(path.join(sdir, 'rank.json'), path.join(ddir, 'rank.json'));
+    copyIf(path.join(sdir, 'results.json'), path.join(ddir, 'results.json'));
     // 中文文件名在静态托管上会有 URL 编码坑，统一改成 changes.md
     const hasDiff = copyIf(path.join(sdir, '本周变化.md'), path.join(ddir, 'changes.md'));
     if (!hasDiff) fs.writeFileSync(path.join(ddir, 'changes.md'), '# 本周变化\n\n（该期无对比数据）\n');
-    if (hasRank && hasRes) kept.push(d);
-    else console.warn(`  ⚠ 跳过 ${ix.key}/${d}：缺 rank.json/results.json`);
   }
 
   if (!kept.length) { console.warn(`  ⚠ ${ix.key} 无有效快照，未收录`); continue; }
 
+  // 网页仅发布变更节点，原始抓取归档保留在各指数项目的 output/。
+  for (const d of fs.readdirSync(idxData).filter(isDate)) {
+    if (!kept.includes(d)) {
+      const target = path.resolve(idxData, d);
+      if (path.dirname(target) !== path.resolve(idxData)) throw new Error('无效的快照路径');
+      fs.rmSync(target, { recursive: true, force: true });
+    }
+  }
   fs.mkdirSync(idxData, { recursive: true });
   fs.writeFileSync(path.join(idxData, 'manifest.json'), JSON.stringify({
-    name: ix.name, latest: kept[0], dates: kept, generated: new Date().toISOString(),
+    name: ix.name, latest: kept[0], dates: kept, checkedAt, generated: new Date().toISOString(),
   }, null, 2));
   indexEntries.push({ key: ix.key, name: ix.name, latest: kept[0], count: kept.length });
   console.log(`  ✓ ${ix.name} (${ix.key})：${kept.length} 期，最新 ${kept[0]}`);

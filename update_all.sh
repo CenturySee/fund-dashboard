@@ -8,13 +8,23 @@ cd "$(dirname "$0")"          # fund-dashboard/
 TARGET="${1:-pages}"          # 部署目标，透传给 deploy.sh
 
 echo "########## [1/3] 纳指100 ##########"
-bash ../nasdq100/run_weekly.sh || echo "⚠ 纳指100 更新失败，继续跑标普500"
+CHECKED=()
+if bash ../nasdq100/run_weekly.sh; then
+  CHECKED+=(--checked=nasdq100)
+else
+  echo "⚠ 纳指100 更新失败，继续跑标普500"
+fi
 
 echo ""
 echo "########## [2/3] 标普500 ##########"
-bash ../sp500/run_weekly.sh   || echo "⚠ 标普500 更新失败，继续部署已更新的部分"
+if bash ../sp500/run_weekly.sh; then
+  CHECKED+=(--checked=sp500)
+else
+  echo "⚠ 标普500 更新失败，继续部署已更新的部分"
+fi
 
-# 两个 run_weekly.sh 末尾都已调 gen_web.js 重建全部指数，这里只负责提交推送
+# 发布前去重，并记录各指数成功更新的核查时间。
+node ./gen_web.js "${CHECKED[@]}" || exit 1
 echo ""
 echo "########## [3/3] 部署上线（$TARGET） ##########"
 bash ./deploy.sh "$TARGET"
