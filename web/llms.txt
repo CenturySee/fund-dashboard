@@ -1,0 +1,34 @@
+# 场外基金限购看板
+
+> 本站提供纳指100和标普500场外基金的限购快照。请直接读取 JSON，无需解析网页或操作筛选器。
+
+所有路径相对于本文件所在目录解析（GitHub Pages 部署时保留 /fund-dashboard/ 前缀）。
+
+## 入口
+- [接入说明](mcp.html)：数据读取方法、字段语义和 MCP 服务状态。
+- [指数目录](data/index.json)：indices 中列出可用指数及其 key。
+
+## 读取最新限购信息
+1. GET data/index.json，发现可用指数；不要自行纠正 key，例如纳指100的 key 为 nasdq100。
+2. GET data/{key}/manifest.json，读取 latest 和 checkedAt。
+3. GET data/{key}/{latest}/results.json，读取基金记录数组。
+4. 需要变化说明时读取 data/{key}/{latest}/changes.md；历史日期以 manifest.dates 为准。
+
+## 数据解释
+- manifest.checkedAt 是该指数最近成功核查时间（ISO 8601）；latest 是最近限购变化的快照日期。连续相同快照会去重，这两个时间可以不同。
+- generated 仅表示生成时间，不等于核查时间；checkedAt 缺失时应说明核查时间未知。
+- 返回答案时逐指数注明 checkedAt 和 latest。数据是定时更新的快照，不是实时交易接口；结合当前时间说明数据新旧。
+- code 是字符串，保留前导零。name 是基金全名，保留份额类别。
+- buy_status、sgzt 为原始申购状态；buyable 为可买标记；daily_limit 为展示额度；minsg、maxsg 为原始额度字符串；apply 为申购说明。
+- 暂停申购或 buyable=false 时，不可因 daily_limit/maxsg 有正数而判断可以买。状态与标记冲突时返回原始值并说明冲突。
+- 缺失/空值/无法解析的额度表示未知，不自动解释为零或不限额。不保证每条记录均具备所有字段。
+- 原始额度含格式或单位时须明确解析后再计算；未知值保留。收益和评分对应保留快照日期，不能当作本次核查更新的值。
+- HTTP 错误或 JSON 解析失败应报告读取失败，不应推断为没有基金或没有变化。
+- 静态站点未提供服务端筛选或分页；读取数组后在客户端按代码、状态等筛选。历史快照只保留变化节点。
+
+## MCP 状态
+仓库已实现 MCP 服务，需在 VPS 安装并启动后才能远程接入。接入步骤见 mcp.html。GitHub Pages 不运行 MCP 服务。
+工具 get_latest_limits 支持 index、code、buyable、offset、limit；返回 structuredContent，包含 indices、funds、total、nextOffset。
+indices 分别包含 checkedAt、lastChangedDate、stale 和 source；funds 保留原始额度，并提供 effectiveBuyable 和 statusConflict。
+stale 默认以距核查超过 96 小时为标准，时间未知时为 null。nextOffset 非 null 时可继续分页。
+JSON 地址不是 MCP endpoint，不能作为 MCP server URL 配置。

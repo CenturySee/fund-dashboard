@@ -113,8 +113,8 @@ export VPS_DEST=/var/www/funds
 bash deploy.sh vps        # 或 both（同时发 Pages）
 ```
 
-`deploy.sh vps` 使用 `scp -r` 复制 `web/` 到目标目录，静态文件落盘即生效，无需 reload nginx。
-它不会自动清理服务器上的旧文件，页面的可选日期以 manifest 为准。
+`deploy.sh vps` 使用 `scp -r` 上传完整发布到 `releases/`，完成后切换 `web` 符号链接，无需 reload nginx。
+旧发布保留用于回滚，需定期清理；首次迁移现有真实目录时会有短暂切换窗口。MCP 部署见 [deploy/MCP.md](deploy/MCP.md)。
 
 > **部署失败怎么办**：偶尔 Actions 报 `Deployment failed, try again later`（GitHub Pages
 > 后端临时故障，即使状态页显示正常）。**别用 `gh run rerun --failed`**——它会重传 artifact
@@ -122,6 +122,9 @@ bash deploy.sh vps        # 或 both（同时发 Pages）
 > `gh workflow run pages.yml --repo CenturySee/fund-dashboard`，或再 push 一个小改动。
 
 ## 说明
+
+- 看板导航中的「MCP / Agent 接入」链接指向 `web/mcp.html`；`web/llms.txt` 提供 JSON 读取步骤和字段语义，随现有静态站一同部署。
+- `mcp/` 已实现独立的只读 MCP 服务；本地启动和 VPS 部署见 [deploy/MCP.md](deploy/MCP.md)。远程服务需单独部署，静态 JSON URL 不能作为 MCP server。
 
 - `index.html` 从 `nasdq100/web/index.html` 演进而来，数据加载路径多了一层 `<key>/`；
   `chart2`（效率地图）坐标轴改为按当期数据自适应，兼容不同指数的费率/误差量级。

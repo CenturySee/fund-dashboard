@@ -3,3 +3,5 @@
 Thumbs.db
 *.log
 *-preview.png
+node_modules/
+mcp/dist/

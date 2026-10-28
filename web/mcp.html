@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP / Agent 接入 · 场外基金限购看板</title>
+<style>
+:root{color-scheme:light;--ink:#17233b;--sub:#52627a;--line:#dae3ef}
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font:16px/1.8 system-ui,"Microsoft YaHei",sans-serif}
+main{max-width:860px;margin:auto;padding:32px 20px 64px}a{color:#245ac3;text-underline-offset:3px}h1{font-size:clamp(26px,5vw,36px);line-height:1.3;margin:24px 0 12px}h2{font-size:21px;margin:0 0 12px}.intro{color:var(--sub)}section{background:white;border:1px solid var(--line);border-radius:14px;padding:24px;margin-top:20px}code{font-family:Consolas,monospace;overflow-wrap:anywhere}pre{padding:16px;background:#eff3f9;border-radius:8px;overflow:auto;font-size:14px;line-height:1.7}pre code{overflow-wrap:normal}.status{display:inline-block;background:#fff2d9;color:#805500;padding:3px 12px;border-radius:20px;font-size:14px}li{margin:8px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th:first-child{width:35%}
+</style>
+</head>
+<body><main>
+<a href="index.html">← 返回限购看板</a>
+<h1>MCP / Agent 接入</h1>
+<p class="intro">让 AI 直接读取结构化限购数据，与看板共用同一份快照。</p>
+<section>
+<h2>MCP 服务状态</h2>
+<span class="status">服务已实现 · VPS 部署后可用</span>
+<p>服务使用 Streamable HTTP，部署目标地址为 <code>https://funds.imak.top/mcp</code>。需先由维护者安装并启动服务；本页不代表线上已开通。GitHub Pages 只提供静态数据。</p>
+<p>在支持远程 MCP 的客户端中添加服务，选择 Streamable HTTP 并填写以上地址。若维护者启用了令牌，客户端还需发送 <code>Authorization: Bearer &lt;令牌&gt;</code> 请求头。此服务未实现 OAuth 登录，需使用支持自定义请求头的客户端，或由维护者提供公开只读访问。</p>
+<pre><code>{
+  "mcpServers": {
+    "fund-dashboard": {
+      "type": "http",
+      "url": "https://funds.imak.top/mcp"
+    }
+  }
+}</code></pre>
+<p>以上是常见配置形式，具体字段以客户端为准。本地启动时地址为 <code>http://127.0.0.1:3100/mcp</code>。</p>
+</section>
+<section>
+<h2>现在就能用：直接读取 JSON</h2>
+<p>支持 HTTP 读取的 agent 可从 <a href="llms.txt">llms.txt</a> 获取机器可读说明，无需解析表格或执行页面脚本。以下链接相对于本站目录，兼容 GitHub Pages 的项目路径。</p>
+<ol>
+<li>读取 <a href="data/index.json"><code>data/index.json</code></a>，获取指数 <code>key</code>。</li>
+<li>读取 <code>data/{key}/manifest.json</code>，获取 <code>latest</code> 和 <code>checkedAt</code>。示例：<a href="data/nasdq100/manifest.json">纳指100</a>、<a href="data/sp500/manifest.json">标普500</a>。</li>
+<li>读取 <code>data/{key}/{latest}/results.json</code>，在返回数组中筛选基金。</li>
+<li>需要变化说明时读取同目录的 <code>changes.md</code>；历史日期从 <code>manifest.dates</code> 获取。</li>
+</ol>
+<p>可以把这段指令发给 agent：</p>
+<pre><code>请读取此看板的 llms.txt，按其中的步骤查询最新限购信息。
+分别列出纳指100和标普500可申购的基金、代码、申购状态及额度。
+每个指数注明最近核查时间和最近变更日期；未知额度保留为未知。</code></pre>
+</section>
+<section>
+<h2>读取时需要保留的语义</h2>
+<table><thead><tr><th>字段</th><th>解释</th></tr></thead><tbody>
+<tr><td><code>checkedAt</code></td><td>该指数最近成功核查时间，ISO 8601 格式；展示时可转为北京时间。缺失时表示核查时间未知。</td></tr>
+<tr><td><code>latest</code></td><td>最近限购变化的快照日期。连续相同快照会去重，因此可能早于核查日期。</td></tr>
+<tr><td><code>generated</code></td><td>文件生成时间，不能替代核查时间。</td></tr>
+<tr><td><code>code</code> / <code>name</code></td><td>基金代码保留前导零；基金名称保留份额类别。</td></tr>
+<tr><td><code>buy_status</code> / <code>buyable</code></td><td>原始申购状态与可买标记。暂停申购时，即使额度字段有数值也不能判断可以买。</td></tr>
+<tr><td><code>daily_limit</code> / <code>minsg</code> / <code>maxsg</code></td><td>展示额度和原始额度字符串。空值不代表零或不限额；计算前须明确单位。</td></tr>
+</tbody></table>
+<p>这是定时更新的快照。收益、净值和评分仍对应保留的快照，不代表最近核查时已刷新。请求失败应明确报错，不应解释为“没有变化”。</p>
+</section>
+<section>
+<h2>MCP 查询工具</h2>
+<p>只读工具 <code>get_latest_limits</code> 支持 <code>index</code>（nasdq100 / sp500，省略查全部）、<code>code</code>（六位字符串）、<code>buyable</code>（布尔值）、<code>offset</code>（默认 0）和 <code>limit</code>（默认 30，最多 100）。</p>
+<pre><code>{ "index": "nasdq100", "buyable": true, "limit": 20 }</code></pre>
+<p>结果包含 <code>indices</code>、<code>funds</code>、<code>total</code>、<code>nextOffset</code>。nextOffset 非空时继续分页。各指数的 <code>stale</code> 默认表示超过 96 小时未核查，时间未知时为 null。</p>
+<p>记录中的 <code>effectiveBuyable</code> 优先尊重暂停状态；<code>statusConflict</code> 提示状态与原始可买标记冲突。原始额度保持字符串，未知值保留。服务定义输入与输出 schema，并返回结构化结果。</p>
+</section>
+</main></body></html>
