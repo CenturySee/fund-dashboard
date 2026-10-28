@@ -6,19 +6,22 @@
 **功能**：吸顶指数/目录切换 · 本期变化 diff · 限购信息表（状态/份额/搜索/分页，
 含「跟踪指数」列区分标准与等权重指数）· 一键导出当前筛选为带格式的 `.xlsx`
 （纯前端生成，零依赖）· 三张交互 ECharts（评分榜/效率地图/收益排行）·
-自适应横屏竖屏窄屏。
+自适应横屏竖屏窄屏 · 连续相同限购快照去重 · 核查时间与最近变更日期高亮提示。
 
 ## 结构
 
 ```
 fund-dashboard/
   gen_web.js          汇总生成器：扫描各项目 output/，产出 web/data/
+  snapshot-history.js 限购信息比较与连续去重
+  cleanup-snapshots.js 原始归档清理（默认预览，--apply 删除）
+  scheduled_update.sh 定时更新与部署，输出 scheduled_update.log
   web/
     index.html        单文件看板（指数切换 + 日期切换 + 限购表 + 3 张 ECharts）
     echarts.min.js    从项目里复制的本地 echarts
     data/
       index.json                  指数清单 {indices, default}
-      <key>/manifest.json         某指数快照清单 {name, latest, dates[]}
+      <key>/manifest.json         某指数快照清单 {name, latest, dates[], checkedAt, generated}
       <key>/<日期>/{rank,results}.json + changes.md
 ```
 
@@ -31,7 +34,7 @@ fund-dashboard/
 `run_weekly.sh` 末尾都会调 `node ../fund-dashboard/gen_web.js`，**谁跑都会重建全部指数**，
 所以跑完后看板数据即最新最全。
 
-**每周一键更新 + 上线（推荐）：**
+**一键更新 + 上线：**
 
 ```bash
 bash update_all.sh        # 刷新纳指100 → 刷新标普500 → 部署，约1分钟后线上生效
@@ -53,13 +56,42 @@ bash update_all.sh both   # 刷数据 + 同时发 Pages 和 VPS
 
 本地预览：`node gen_web.js && cd web && python -m http.server 8080`
 
+Windows PowerShell 也可用绝对路径启动，避免误打开单指数项目的旧页面：
+
+```powershell
+python -m http.server 8081 --directory "C:\xzq\projects\vibe_coding\fund-dashboard\web"
+```
+
+浏览器访问 `http://localhost:8081`；端口已占用时换一个端口。
+
 日期下拉列表只收录限购信息发生变化的日期：连续相同的记录保留最早一天，
 额度恢复为旧值时仍新增变更节点。比较基金代码、申购状态、可买标记及申购额度，
 忽略净值日期、收益、评分和基金排列顺序。
 `gen_web.js` 会清理 `web/data/` 中重复的快照，各指数项目 `output/` 中的原始归档仍保留。
 页面单独显示最近核查时间；`update_all.sh` 仅为成功更新的指数刷新核查时间。
+顶部蓝色提示栏按北京时间显示核查时间，核查时间与最近变更日期均高亮显示。
+核查日期晚于最新变更日期时提示“截至本次核查，限购信息暂无变化”；
+查看历史快照时显示历史提示，避免将最新核查结论误用于旧数据。
 无变化时不发布当天快照，历史收益与评分仍取所保留的变更日数据。
 去重逻辑测试：`node --test snapshot-history.test.js`。
+
+清理两个采集项目 `output/` 中的连续重复归档：
+
+```bash
+node cleanup-snapshots.js          # 只预览待删除目录
+node cleanup-snapshots.js --apply  # 实际删除
+```
+
+脚本按自身位置定位同级的 `nasdq100` 和 `sp500`，与运行时的当前目录无关。
+仅保留每段相同限购信息最早的归档；额度变化后恢复仍保留。
+删除的是整个日期目录（包括当日收益、图表和报告），网页数据及最近核查时间不变。
+如果有不完整或损坏的快照，检查会报错并停止。请在更新脚本运行结束后清理。
+后续运行采集脚本仍会产生当天归档，可再次执行清理脚本。
+测试：`node --test snapshot-history.test.js cleanup-snapshots.test.js`。
+
+本机 Windows 计划任务 `fund-dashboard weekly update` 已设置为周一至周五
+北京时间 16:00 执行 `scheduled_update.sh`，依次运行 `update_all.sh`（更新并推送 Pages）
+和 `deploy.sh vps`（部署 VPS）。任务保存在 Windows 任务计划程序中，克隆仓库不会自动创建。
 
 ## 部署
 
@@ -73,15 +105,16 @@ bash update_all.sh both   # 刷数据 + 同时发 Pages 和 VPS
 **② 自建 VPS（`deploy/`）：** nginx 监听非标端口 8443 + Cloudflare Origin Rules 把
 443 回源改写到 8443，访客走 `https://fund.imak.top`（URL 不带端口）。完整步骤见
 [`deploy/DEPLOY-VPS.md`](deploy/DEPLOY-VPS.md)，nginx 配置见 [`deploy/nginx-fund.imak.top.conf`](deploy/nginx-fund.imak.top.conf)。
-VPS 目标用环境变量配置，脚本不硬编码主机：
+VPS 目标可用环境变量覆盖，默认主机为 SSH 别名 `racknerd-65201`，目标目录为 `/var/www/funds`：
 
 ```bash
 export VPS_HOST=deploy@你的IP
-export VPS_DEST=/var/www/fund-dashboard
+export VPS_DEST=/var/www/funds
 bash deploy.sh vps        # 或 both（同时发 Pages）
 ```
 
-`deploy.sh vps` 走 `rsync --delete` 只传差异，静态站落盘即生效，无需 reload nginx。
+`deploy.sh vps` 使用 `scp -r` 复制 `web/` 到目标目录，静态文件落盘即生效，无需 reload nginx。
+它不会自动清理服务器上的旧文件，页面的可选日期以 manifest 为准。
 
 > **部署失败怎么办**：偶尔 Actions 报 `Deployment failed, try again later`（GitHub Pages
 > 后端临时故障，即使状态页显示正常）。**别用 `gh run rerun --failed`**——它会重传 artifact

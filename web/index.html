@@ -18,6 +18,13 @@
   header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 16px;margin-bottom:6px;}
   h1{font-size:24px;margin:0;}
   .meta{color:var(--sub);font-size:13px;}
+  .check-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:12px 0 16px;
+    padding:12px 16px;border:1px solid #bfdbfe;border-left:4px solid var(--accent);
+    border-radius:10px;background:#eff6ff;color:#1e40af;font-size:14px;}
+  .check-status[hidden]{display:none;}
+  .check-status time{font-weight:700;font-variant-numeric:tabular-nums;}
+  .check-status .check-note{color:#334155;}
+  .check-status .change-date{color:#1e40af;font-weight:700;background:#dbeafe;padding:1px 6px;border-radius:4px;}
   .controls{margin-left:auto;display:flex;align-items:center;gap:8px;}
   select{font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);}
   /* 吸顶容器：指数切换 + 目录一起常驻顶部 */
@@ -146,6 +153,11 @@
       <select id="dateSel"></select>
     </div>
   </header>
+
+  <div class="check-status" id="checkStatus" role="status" hidden>
+    <span>最近核查（北京时间）：<time id="checkTime"></time></span>
+    <span class="check-note" id="checkNote"></span>
+  </div>
 
   <div class="stickytop" id="stickytop">
   <div class="indexbar">
@@ -290,6 +302,7 @@ async function selectIndex(key){
 }
 
 async function load(date){
+  document.getElementById('checkStatus').hidden = true;
   document.getElementById('dateSel').value = date;
   document.getElementById('meta').textContent = '快照 ' + date + ' · 加载中…';
   const base = `data/${CUR}/${date}`;
@@ -322,8 +335,32 @@ async function load(date){
   });
   const nBuy = TABLE.filter(r=>r.status!=='stop').length, nStop = TABLE.length-nBuy;
   const checked = MANIFEST.checkedAt || MANIFEST.generated;
-  const checkedText = checked ? new Date(checked).toLocaleString('zh-CN', {hour12:false}) : '';
-  document.getElementById('meta').textContent = `快照 ${date} · 最近核查 ${checkedText} · 可买 ${nBuy} 只 · 暂停 ${nStop} 只`;
+  document.getElementById('meta').textContent = `快照 ${date} · 可买 ${nBuy} 只 · 暂停 ${nStop} 只`;
+  if (checked && Number.isFinite(new Date(checked).getTime())) {
+    const checkedDate = new Date(checked);
+    const options = {timeZone:'Asia/Shanghai', hour12:false};
+    const time = document.getElementById('checkTime');
+    time.dateTime = checked;
+    time.textContent = checkedDate.toLocaleString('zh-CN', options);
+    const parts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Shanghai',
+      year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(checkedDate);
+    const part = type => parts.find(p=>p.type===type).value;
+    const checkedDay = `${part('year')}-${part('month')}-${part('day')}`;
+    const note = document.getElementById('checkNote');
+    note.textContent = date !== MANIFEST.latest
+      ? '当前查看历史快照，请切换至最新日期查看本次核查对应的限购信息。'
+      : checkedDay > MANIFEST.latest
+        ? '截至本次核查，限购信息暂无变化；最近变更日期为 '
+        : '限购信息已核查，最近变更日期为 ';
+    if (date === MANIFEST.latest) {
+      const changeDate = document.createElement('time');
+      changeDate.className = 'change-date';
+      changeDate.dateTime = MANIFEST.latest;
+      changeDate.textContent = MANIFEST.latest;
+      note.append(changeDate, '。');
+    }
+    document.getElementById('checkStatus').hidden = false;
+  }
   page = 1;
   renderDiff(diffMd, date);
   renderTable();
