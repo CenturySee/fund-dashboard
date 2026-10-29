@@ -95,7 +95,7 @@ node cleanup-snapshots.js --apply  # 实际删除
 
 ## 部署
 
-纯静态站（`web/` 目录，无后端），支持两种发布目标，可单选或双发：
+看板为纯静态站（`web/` 目录），MCP 为独立后端服务。看板支持两种发布目标，可单选或双发：
 
 **① GitHub Pages（默认）：** 线上 **https://centurysee.github.io/fund-dashboard/**。
 `.github/workflows/pages.yml` 在每次 push 到 `main` 时自动把 `web/` 发布上线——
@@ -103,8 +103,8 @@ node cleanup-snapshots.js --apply  # 实际删除
 `web/data/` 是生成产物但需一并提交（静态站点靠它取数）。
 
 **② 自建 VPS（`deploy/`）：** nginx 监听非标端口 8443 + Cloudflare Origin Rules 把
-443 回源改写到 8443，访客走 `https://fund.imak.top`（URL 不带端口）。完整步骤见
-[`deploy/DEPLOY-VPS.md`](deploy/DEPLOY-VPS.md)，nginx 配置见 [`deploy/nginx-fund.imak.top.conf`](deploy/nginx-fund.imak.top.conf)。
+443 回源改写到 8443，访客走 `https://funds.imak.top`（URL 不带端口）。完整步骤见
+[`deploy/DEPLOY-VPS.md`](deploy/DEPLOY-VPS.md)，nginx 配置见 [`deploy/funds.imak.top.conf`](deploy/funds.imak.top.conf)。
 VPS 目标可用环境变量覆盖，默认主机为 SSH 别名 `racknerd-65201`，目标目录为 `/var/www/funds`：
 
 ```bash
@@ -120,6 +120,91 @@ bash deploy.sh vps        # 或 both（同时发 Pages）
 > 后端临时故障，即使状态页显示正常）。**别用 `gh run rerun --failed`**——它会重传 artifact
 > 导致「两个同名 artifact」越修越乱。正确做法是隔几分钟触发一次全新运行：
 > `gh workflow run pages.yml --repo CenturySee/fund-dashboard`，或再 push 一个小改动。
+
+## MCP 使用与验证
+
+VPS MCP 地址为 `https://funds.imak.top/mcp`，使用 Streamable HTTP，当前启用了 Bearer 令牌。
+GitHub Pages 只提供静态看板和 JSON，不运行 MCP 服务。首次安装步骤见 [deploy/MCP.md](deploy/MCP.md)。
+
+部署脚本为 MCP 单独安装 Node.js 22.23.4 到 `/opt/fund-mcp/node`，下载后校验 SHA-256，
+并配置 systemd 使用该运行环境，不修改系统原有 Node/npm。旧系统的 npm 6 无法读取当前锁文件，
+可能报 `Cannot read property '@modelcontextprotocol/sdk' of undefined`；应使用新版 `bash deploy.sh mcp` 部署。
+
+### 日常更新
+
+| 命令 | 行为 |
+| --- | --- |
+| `bash deploy.sh` | 默认 `pages`：提交所有未忽略的仓库改动并推送到 main，触发 GitHub Pages 发布 |
+| `bash deploy.sh vps` | 发布本地已有网页及数据到 VPS，不采集数据、不重启 MCP |
+| `bash deploy.sh both` | 发布 GitHub Pages 和 VPS 网页及数据 |
+| `bash update_all.sh both` | 先采集两个指数，再发布到 GitHub Pages 和 VPS |
+| `bash deploy.sh mcp` | 构建并发布 MCP 服务代码，安装生产依赖并重启服务 |
+
+MCP 每次请求读取最新数据，日常限购更新无需重新部署 MCP。
+修改 VPS 的 `/etc/fund-mcp.env` 后需执行 `sudo systemctl restart fund-mcp`。
+目前 Windows 定时任务先执行 `update_all.sh`（默认 Pages），再执行 `deploy.sh vps`，两边都会更新。
+
+### 从 Windows 验证远程 MCP
+
+在本地项目根目录打开 PowerShell，进入 MCP 目录并安装依赖：
+
+```powershell
+cd mcp
+npm ci
+
+# 保证通过管道传给 Node 的脚本，以及控制台输出都使用 UTF-8。
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+
+# 输入 VPS /etc/fund-mcp.env 中配置的 MCP_TOKEN，输入时不显示。
+$env:MCP_TOKEN = [System.Net.NetworkCredential]::new(
+  '',
+  (Read-Host '请输入 MCP_TOKEN' -AsSecureString)
+).Password
+
+@'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+const client = new Client({ name: 'remote-test', version: '1.0.0' });
+try {
+  await client.connect(new StreamableHTTPClientTransport(
+    new URL('https://funds.imak.top/mcp'),
+    { requestInit: { headers: { Authorization: `Bearer ${process.env.MCP_TOKEN}` } } }
+  ));
+  console.log('连接成功');
+  console.log('可用工具：', (await client.listTools()).tools.map(t => t.name));
+  const result = await client.callTool({
+    name: 'get_latest_limits',
+    arguments: { index: 'nasdq100', buyable: true, limit: 3 }
+  });
+  if (result.isError) throw new Error(JSON.stringify(result.content));
+  console.log(JSON.stringify(result.structuredContent, null, 2));
+} finally {
+  await client.close();
+}
+'@ | node --input-type=module
+
+Remove-Item Env:MCP_TOKEN
+```
+
+成功时会显示工具 `get_latest_limits`，结果包含 `indices`、`funds`、`total` 和 `nextOffset`。
+逐指数检查 `checkedAt`（核查时间）、`lastChangedDate`（变更日期）和 `stale`（默认超过 96 小时未核查）。
+`nextOffset` 非空时，可保持相同筛选条件，将其作为下一次请求的 `offset`。
+基金代码是六位字符串；暂停申购时不能仅根据额度为正数判断可买，未知额度不等于不限额。
+
+若只有脚本中的“连接成功”等中文乱码，而返回的数据中文正常，通常是 PowerShell 管道输入编码问题；
+先执行上面的 UTF-8 设置再重试，无需修改服务器。
+
+普通浏览器 GET `/mcp` 不用于验证调用链路：带正确鉴权后可能返回 405，未鉴权会返回 401。
+401 检查令牌，403 检查允许的域名、来源或 Cloudflare 拦截，502 检查服务与 nginx。
+在 VPS 可执行 `curl -fsS http://127.0.0.1:3100/healthz` 检查进程存活，
+执行 `sudo journalctl -u fund-mcp -n 100 --no-pager` 查看日志。
+
+### 本地测试
+
+在 `mcp/` 中执行 `npm test`，自动验证连接、工具发现、筛选、分页、参数校验、鉴权及更新后读取。
+本机手动启动用 `npm run build` 后执行 `npm start`，地址为 `http://127.0.0.1:3100/mcp`，默认无需令牌。
 
 ## 说明
 

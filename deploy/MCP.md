@@ -15,7 +15,7 @@ npm start
 
 ## VPS 首次安装
 
-先在服务器安装 Node.js 22+、npm、systemd 和 nginx。将本目录 fund-mcp.service、fund-mcp.env.example 上传到服务器后执行：
+服务器需具备 systemd、nginx、curl、tar、xz 和 sha256sum。本地需要 Node.js 22+。部署脚本会从 Node.js 官方下载并校验 SHA-256，在 /opt/fund-mcp/node 安装专用 Node.js 22.23.4，不修改系统 Node/npm。将本目录 fund-mcp.service、fund-mcp.env.example 上传到服务器后执行：
 
 ```bash
 sudo install -m 644 fund-mcp.service /etc/systemd/system/fund-mcp.service
@@ -25,7 +25,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable fund-mcp
 ```
 
-确认 DATA_DIR 与网站数据目录一致；MCP_ALLOWED_HOSTS 包含实际访问域名。需要令牌时在环境文件设置 MCP_TOKEN。服务以 www-data 运行，需具备数据目录的读取及父目录的进入权限。ExecStart 默认 /usr/bin/node，若安装路径不同需调整。
+确认 DATA_DIR 与网站数据目录一致；MCP_ALLOWED_HOSTS 包含实际访问域名。需要令牌时在环境文件设置 MCP_TOKEN。服务以 www-data 运行，需具备数据目录的读取及父目录的进入权限。ExecStart 使用 /opt/fund-mcp/node/bin/node；部署时也会安装 systemd runtime.conf 覆盖旧服务的运行路径，确保 npm 安装与服务使用同一 Node。
 
 在本地仓库运行（Git Bash）：
 
